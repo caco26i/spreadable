@@ -1,121 +1,129 @@
-const assert = require('chai').assert;
-const fse = require('fs-extra');
-const path = require('path');
-const tools = require('../tools');
-const LoggerFile = require('../../src/logger/transports/file')();
+import { beforeAll, expect, test, describe } from "bun:test";
 
-describe('LoggerConsole', function () {
-  let logger; 
+import fse from 'fs-extra';
+import path from 'path';
+import tools from '../tools';
+import LoggerFileFactory from '../../src/logger/transports/file';
+const LoggerFile = LoggerFileFactory();
+
+describe('LoggerConsole', () => {
+  let testContext;
+
+  beforeAll(() => {
+    testContext = {};
+  });
+
+  let logger;
   let folder;
 
-  before(() => {
+  beforeAll(() => {
     folder = path.join(tools.tmpPath, 'file-logs');
   });
-  
-  describe('instance creation', function () {
-    it('should create an instance', function () {
-      assert.doesNotThrow(() => logger = new LoggerFile({ folder, level: 'info' }));
-      logger.node = this.node;
+
+  describe('instance creation', () => {
+    test('should create an instance', () => {
+      expect(() => logger = new LoggerFile({ folder, level: 'info' })).not.toThrow();
+      logger.node = testContext.node;
     });
   });
 
-  describe('.init()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.init()', () => { 
+    test('should not throw an exception', async () => {
       await logger.init();
     }); 
     
-    it('should create the first file', async function () {
-      assert.lengthOf(await fse.readdir(folder), 1);
+    test('should create the first file', async () => {
+      expect((await fse.readdir(folder)).length).toBe(1);
     }); 
   });
 
-  describe('.getMessageSize()', function () { 
-    it('should return the right size', function () {
+  describe('.getMessageSize()', () => { 
+    test('should return the right size', () => {
       const prepared = logger.prepareMessage('test', 'info');
-      assert.equal(logger.getMessageSize(prepared),  Buffer.byteLength(prepared, 'utf8'));
+      expect(logger.getMessageSize(prepared)).toEqual(Buffer.byteLength(prepared, 'utf8'));
     }); 
   });
 
-  describe('.prepareMessage()', function () { 
-    it('should prepare the right message', function () {
+  describe('.prepareMessage()', () => { 
+    test('should prepare the right message', () => {
       const message = 'test';
       const level = 'warn';
       const prepared = logger.prepareMessage(message, level);
       const json = JSON.parse(prepared);
-      assert.equal(message, json.message, 'check the message');
-      assert.equal(level, json.level, 'check the type');
-      assert.isNotNaN(new Date(json.date).getTime(), 'check the date');
+      expect(message).toEqual(json.message);
+      expect(level).toEqual(json.level);
+      expect(new Date(json.date).getTime()).not.toBe();
     }); 
   });
 
-  describe('.info()', function () { 
-    it('should write nothing', async function () {
+  describe('.info()', () => { 
+    test('should write nothing', async () => {
       logger.level = 'warn';
       const message = 'test info';
       const prepared = logger.prepareMessage(message, 'info');
       await logger.info(message);
       const last = logger.getLastFile();
       const content = await fse.readFile(last.filePath);
-      assert.isNotOk(content.toString().match(prepared));
+      expect(content.toString().match(prepared)).toBeFalsy();
     }); 
 
-    it('should write the info message', async function () {
+    test('should write the info message', async () => {
       logger.level = 'info';
       const message = 'test info';
       const prepared = logger.prepareMessage(message, 'info');
       await logger.info(message);
       const last = logger.getLastFile();
       const content = await fse.readFile(last.filePath);
-      assert.isOk(content.toString().match(prepared));
+      expect(content.toString().match(prepared)).toBeTruthy();
     });     
   });
 
-  describe('.warn()', function () { 
-    it('should write nothing', async function () {
+  describe('.warn()', () => { 
+    test('should write nothing', async () => {
       logger.level = 'error';
       const message = 'test warn';
       const prepared = logger.prepareMessage(message, 'warn');
       await logger.warn(message);
       const last = logger.getLastFile();
       const content = await fse.readFile(last.filePath);
-      assert.isNotOk(content.toString().match(prepared));
+      expect(content.toString().match(prepared)).toBeFalsy();
     }); 
 
-    it('should write the warn message', async function () {
+    test('should write the warn message', async () => {
       logger.level = 'warn';
       const message = 'test warn';
       const prepared = logger.prepareMessage(message, 'warn');
       await logger.warn(message);
       const last = logger.getLastFile();
       const content = await fse.readFile(last.filePath);
-      assert.isOk(content.toString().match(prepared));
+      expect(content.toString().match(prepared)).toBeTruthy();
     }); 
   });
 
-  describe('.error()', function () { 
-    it('should write nothing', async function () {
+  describe('.error()', () => { 
+    test('should write nothing', async () => {
       logger.level = false;
       const message = 'test error';
       const prepared = logger.prepareMessage(message, 'error');
       await logger.error(message);
       const last = logger.getLastFile();
       const content = await fse.readFile(last.filePath);
-      assert.isNotOk(content.toString().match(prepared));
+      expect(content.toString().match(prepared)).toBeFalsy();
     }); 
 
-    it('should write the error message', async function () {
+    test('should write the error message', async () => {
       logger.level = 'error';
       const message = 'test error';
       const prepared = logger.prepareMessage(message, 'error');
       await logger.error(message);
       const last = logger.getLastFile();
       const content = await fse.readFile(last.filePath);
-      assert.isOk(content.toString().match(prepared));
+      expect(content.toString().match(prepared)).toBeTruthy();
     }); 
   });
 
-  describe('.log()', function () { 
-    it('should write in a new file', async function () {
+  describe('.log()', () => { 
+    test('should write in a new file', async () => {
       logger.level = 'info';
       const message = 'test';
       const first = logger.getLastFile();
@@ -124,11 +132,11 @@ describe('LoggerConsole', function () {
       await logger.info(message);
       const last = logger.getLastFile();
       const content = await fse.readFile(last.filePath);
-      assert.notEqual(first.filePath, last.filePath, 'check the file');
-      assert.equal(content.toString(), prepared + '\n', 'check the content');
+      expect(first.filePath).not.toEqual(last.filePath);
+      expect(content.toString()).toEqual(prepared + '\n');
     }); 
 
-    it('should add messages in parallel', async function () {
+    test('should add messages in parallel', async () => {
       logger.options.fileMaxSize = '10mb';
       const messages = [];
       const p = []
@@ -143,26 +151,26 @@ describe('LoggerConsole', function () {
       const content = (await fse.readFile(last.filePath)).toString();
       
       for(let i = 0; i < messages.length; i++) {
-        assert.isOk(content.indexOf(messages[i]) >= 0);
+        expect(content.indexOf(messages[i]) >= 0).toBeTruthy();
       }
     }); 
   });
 
-  describe('.addNewFile()', function () { 
-    it('should create a new file', async function () {
+  describe('.addNewFile()', () => { 
+    test('should create a new file', async () => {
       const files = await fse.readdir(folder);
       const prev = logger.getLastFile();
       const file = await logger.addNewFile();
       const last = logger.getLastFile();
-      assert.equal(files.length + 1, (await fse.readdir(folder)).length, 'check the count');
-      assert.equal(file.index, prev.index + 1, 'check the index');
-      assert.isTrue(file.filePath != prev.filePath && file.filePath == last.filePath, 'check the path');
+      expect(files.length + 1).toEqual((await fse.readdir(folder)).length);
+      expect(file.index).toEqual(prev.index + 1);
+      expect(file.filePath != prev.filePath && file.filePath == last.filePath).toBe(true);
       assert.containsAllKeys(file.stat, ['size'], 'check the stat');
     }); 
   });
 
-  describe('.getLastFile()', function () { 
-    it('should get the last file', async function () {
+  describe('.getLastFile()', () => { 
+    test('should get the last file', async () => {
       const files = await fse.readdir(folder);
       let max = 1;
 
@@ -172,25 +180,25 @@ describe('LoggerConsole', function () {
       }
 
       const first = logger.getLastFile();
-      assert.equal(first.index, max, 'check before addition');
+      expect(first.index).toEqual(max);
       await logger.addNewFile();
       const last = logger.getLastFile();
-      assert.equal(first.index + 1, last.index, 'check after addition');
+      expect(first.index + 1).toEqual(last.index);
     }); 
   });
 
-  describe('.normalizeFilesCount()', function () { 
-    before(async function () {
+  describe('.normalizeFilesCount()', () => { 
+    beforeAll(async () => {
       await fse.emptyDir(folder);
     });
 
-    it('should create a new file', async function () {
+    test('should create a new file', async () => {
       await logger.normalizeFilesCount();
       const files = await fse.readdir(folder);
-      assert.equal(files.length, 1);
+      expect(files.length).toEqual(1);
     }); 
 
-    it('should remove excess files', async function () {
+    test('should remove excess files', async () => {
       const count = logger.options.filesCount + 2;
 
       for(let i = 0; i < count; i++) {
@@ -199,29 +207,29 @@ describe('LoggerConsole', function () {
 
       await logger.normalizeFilesCount();
       const files = await fse.readdir(folder);
-      assert.equal(files.length, logger.options.filesCount);
+      expect(files.length).toEqual(logger.options.filesCount);
     }); 
   });
 
-  describe('.deinit()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.deinit()', () => { 
+    test('should not throw an exception', async () => {
       await logger.deinit();
     });
-  }); 
+  });
 
   describe('reinitialization', () => {
-    it('should not throw an exception', async function () {
+    test('should not throw an exception', async () => {
       await logger.init();
     });
   });
-  
-  describe('.destroy()', function () { 
-    it('should not throw an exception', async function () {
+
+  describe('.destroy()', () => { 
+    test('should not throw an exception', async () => {
       await logger.destroy();
     });
 
-    it('should remove the folder', async function () {
-      assert.isFalse(await fse.pathExists(folder));
+    test('should remove the folder', async () => {
+      expect(await fse.pathExists(folder)).toBe(false);
     }); 
   });
 });

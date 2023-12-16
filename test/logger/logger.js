@@ -1,83 +1,91 @@
-const assert = require('chai').assert;
-const Logger = require('../../src/logger/transports/logger')();
+import { beforeAll, expect, test, describe } from "bun:test";
+
+import LoggerFactory from '../../src/logger/transports/logger';
+const Logger = LoggerFactory();
 
 describe('Logger', () => {
+  let testContext;
+
+  beforeAll(() => {
+    testContext = {};
+  });
+
   let logger;
-  
-  describe('instance creation', function () {
-    it('should create an instance', function () {
-      assert.doesNotThrow(() => logger = new Logger());
-      logger.node = this.node;
+
+  describe('instance creation', () => {
+    test('should create an instance', () => {
+      expect(() => logger = new Logger()).not.toThrow();
+      logger.node = testContext.node;
     });
   });
 
-  describe('.init()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.init()', () => { 
+    test('should not throw an exception', async () => {
       await logger.init();
     });  
   });
 
-  describe('.setLevel()', function () {
-    it('should set the level', function () {
+  describe('.setLevel()', () => {
+    test('should set the level', () => {
       const level = 'warn';
-      assert.equal(logger.level, logger.defaultLevel, 'check before');
+      expect(logger.level).toEqual(logger.defaultLevel);
       logger.setLevel(level);
-      assert.equal(logger.level, level, 'check before');
+      expect(logger.level).toEqual(level);
     });
 
-    it('should throw an error with wrong level', function () {
-      assert.throws(() => logger.setLevel('wrong'));
+    test('should throw an error with wrong level', () => {
+      expect(() => logger.setLevel('wrong')).toThrow();
     });
 
-    it('should set the false', function () {
+    test('should set the false', () => {
       logger.setLevel(false);
-      assert.isFalse(logger.level);
+      expect(logger.level).toBe(false);
     });
   });
 
-  describe('.isLevelActive()', function () {
-    it('should check the false level', function () {
+  describe('.isLevelActive()', () => {
+    test('should check the false level', () => {
       logger.isLevelActive('warn', 'check warn');
       logger.isLevelActive('info', 'check info');
       logger.isLevelActive('error', 'check error');
     });
 
-    it('should check the info level', function () {
+    test('should check the info level', () => {
       logger.setLevel('info');
-      assert.isTrue(logger.isLevelActive('info'), 'check info');
-      assert.isTrue(logger.isLevelActive('warn'), 'check warn');
-      assert.isTrue(logger.isLevelActive('error'), 'check error');
+      expect(logger.isLevelActive('info')).toBe(true);
+      expect(logger.isLevelActive('warn')).toBe(true);
+      expect(logger.isLevelActive('error')).toBe(true);
     }); 
 
-    it('should check the warn level', function () {
+    test('should check the warn level', () => {
       logger.setLevel('warn');
-      assert.isFalse(logger.isLevelActive('info'), 'check info');
-      assert.isTrue(logger.isLevelActive('warn'), 'check warn');
-      assert.isTrue(logger.isLevelActive('error'), 'check error');
+      expect(logger.isLevelActive('info')).toBe(false);
+      expect(logger.isLevelActive('warn')).toBe(true);
+      expect(logger.isLevelActive('error')).toBe(true);
     }); 
 
-    it('should check the error level', function () {
+    test('should check the error level', () => {
       logger.setLevel('error');
-      assert.isFalse(logger.isLevelActive('info'), 'check info');
-      assert.isFalse(logger.isLevelActive('warn'), 'check warn');
-      assert.isTrue(logger.isLevelActive('error'), 'check error');
+      expect(logger.isLevelActive('info')).toBe(false);
+      expect(logger.isLevelActive('warn')).toBe(false);
+      expect(logger.isLevelActive('error')).toBe(true);
     }); 
   });
 
-  describe('.deinit()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.deinit()', () => { 
+    test('should not throw an exception', async () => {
       await logger.deinit();
     });
-  }); 
+  });
 
   describe('reinitialization', () => {
-    it('should not throw an exception', async function () {
+    test('should not throw an exception', async () => {
       await logger.init();
     });
   });
-  
-  describe('.destroy()', function () { 
-    it('should not throw an exception', async function () {
+
+  describe('.destroy()', () => { 
+    test('should not throw an exception', async () => {
       await logger.destroy();
     });
   });

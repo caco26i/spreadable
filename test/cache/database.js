@@ -1,75 +1,83 @@
-const assert = require('chai').assert;
-const CacheDatabase = require('../../src/cache/transports/database')();
+import { beforeAll, expect, test, describe } from "bun:test";
+
+import CacheDatabaseFactory from '../../src/cache/transports/database';
+const CacheDatabase = CacheDatabaseFactory();
 
 describe('CacheDatabase', () => {
+  let testContext;
+
+  beforeAll(() => {
+    testContext = {};
+  });
+
   let cache;
   let type;
 
-  before(function () {
+  beforeAll(() => {
     type = 'test';
   });
-  
-  describe('instance creation', function () {
-    it('should create an instance', function () { 
-      assert.doesNotThrow(() => cache = new CacheDatabase()); 
-      cache.node = this.node;
+
+  describe('instance creation', () => {
+    test('should create an instance', () => { 
+      expect(() => cache = new CacheDatabase()).not.toThrow(); 
+      cache.node = testContext.node;
       cache.name = 'test';   
     });    
   });
 
-  describe('.init()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.init()', () => { 
+    test('should not throw an exception', async () => {
       await cache.init();
     });  
   });
 
-  describe('.set()', function () {
-    it('should add the cache', async function () { 
+  describe('.set()', () => {
+    test('should add the cache', async () => { 
       const key = 'key1'; 
       const value = 1;
       await cache.set(key, value);
-      const res = await this.node.db.getCache(type, key);
-      assert.equal(res.value, value);
+      const res = await testContext.node.db.getCache(type, key);
+      expect(res.value).toEqual(value);
     });
   });
 
-  describe('.get()', function () {
-    it('should get the cache', async function () {
+  describe('.get()', () => {
+    test('should get the cache', async () => {
       const res = await cache.get('key1');
-      assert.equal(res.value, 1, 'check the value');
+      expect(res.value).toEqual(1);
     });
   });
 
-  describe('.remove()', function () {
-    it('should remove the cache', async function () {
+  describe('.remove()', () => {
+    test('should remove the cache', async () => {
       await cache.remove('key1');
-      assert.isNull(await cache.get('key1'));
+      expect(await cache.get('key1')).toBeNull();
     });
   });
 
-  describe('.flush()', function () {
-    it('should remove the cache', async function () {
+  describe('.flush()', () => {
+    test('should remove the cache', async () => {
       const key = 'key';
       await cache.set(key, 1);
       await cache.flush();
-      assert.isNull(await cache.get(key));
+      expect(await cache.get(key)).toBeNull();
     });
   });
 
-  describe('.deinit()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.deinit()', () => { 
+    test('should not throw an exception', async () => {
       await cache.deinit();
     });
-  }); 
+  });
 
   describe('reinitialization', () => {
-    it('should not throw an exception', async function () {
+    test('should not throw an exception', async () => {
       await cache.init();
     });
   });
-  
-  describe('.destroy()', function () { 
-    it('should not throw an exception', async function () {
+
+  describe('.destroy()', () => { 
+    test('should not throw an exception', async () => {
       await cache.destroy();
     });
   });

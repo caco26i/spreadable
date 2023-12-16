@@ -1,103 +1,111 @@
-const assert = require('chai').assert;
-const ApprovalClient = require('../../src/approval/transports/client')();
-const utils = require('../../src/utils');
+import { beforeAll, expect, test, describe } from "bun:test";
+
+import ApprovalClientFactory from '../../src/approval/transports/client';
+const ApprovalClient = ApprovalClientFactory();
+import utils from '../../src/utils';
 
 describe('ApprovalClient', () => {
+  let testContext;
+
+  beforeAll(() => {
+    testContext = {};
+  });
+
   let approval;
-  
-  describe('instance creation', function () {
-    it('should create an instance', function () {
-      assert.doesNotThrow(() => approval = new ApprovalClient());
-      approval.node = this.node;
+
+  describe('instance creation', () => {
+    test('should create an instance', () => {
+      expect(() => approval = new ApprovalClient()).not.toThrow();
+      approval.node = testContext.node;
     });
   });
 
-  describe('.init()', function () {
-    it('should not throw an exception', async function () {
+  describe('.init()', () => {
+    test('should not throw an exception', async () => {
       await approval.init();
     });  
   });
 
-  describe('.createInfo()', function () {
-    it('should return the right info', async function () {
+  describe('.createInfo()', () => {
+    test('should return the right info', async () => {
       const clientIp = '127.0.0.1';
       const result = await approval.createInfo({ clientIp });
-      assert.isOk(result.info == clientIp && result.answer == clientIp);
+      expect(result.info == clientIp && result.answer == clientIp).toBeTruthy();
     });  
-  }); 
-  
-  describe('.createQuestion()', function () {
-    it('should return the right question', async function () {
+  });
+
+  describe('.createQuestion()', () => {
+    test('should return the right question', async () => {
       const clientIp = '127.0.0.1';
       const result = await approval.createQuestion([], undefined, clientIp);
-      assert.equal(result, clientIp);
+      expect(result).toEqual(clientIp);
     });  
-  }); 
+  });
 
-  describe('.checkAnswer()', function () {
-    it('should return false', async function () {
+  describe('.checkAnswer()', () => {
+    test('should return false', async () => {
       const clientIp = '127.0.0.1';
       const result = await approval.checkAnswer({ answer: clientIp }, '1.1.1.1');
-      assert.isFalse(result);
+      expect(result).toBe(false);
     });  
 
-    it('should return true', async function () {
+    test('should return true', async () => {
       const clientIp = '127.0.0.1';
       const result = await approval.checkAnswer({ answer: clientIp }, clientIp);
-      assert.isTrue(result);
+      expect(result).toBe(true);
     });  
   });
 
-  describe('.getClientInfoSchema()', function () {
-    it('should throw an error', function () {
+  describe('.getClientInfoSchema()', () => {
+    test('should throw an error', () => {
       const schema = approval.getClientInfoSchema();
-      assert.throws(() => utils.validateSchema(schema, {}));
+      expect(() => utils.validateSchema(schema, {})).toThrow();
     });  
 
-    it('should not throw an error', function () {
+    test('should not throw an error', () => {
       const schema = approval.getClientInfoSchema();
-      assert.doesNotThrow(() => utils.validateSchema(schema, undefined));
+      expect(() => utils.validateSchema(schema, undefined)).not.toThrow();
     }); 
   });
 
-  describe('.getClientAnswerSchema()', function () {
-    it('should throw an error', function () {
+  describe('.getClientAnswerSchema()', () => {
+    test('should throw an error', () => {
       const schema = approval.getClientAnswerSchema();
-      assert.throws(() => utils.validateSchema(schema, 'wrong'));
+      expect(() => utils.validateSchema(schema, 'wrong')).toThrow();
     });  
 
-    it('should not throw an error', function () {
+    test('should not throw an error', () => {
       const schema = approval.getClientAnswerSchema();
-      assert.doesNotThrow(() => utils.validateSchema(schema, '1.1.1.1'));
+      expect(() => utils.validateSchema(schema, '1.1.1.1')).not.toThrow();
     }); 
   });
 
-  describe('.getApproverInfoSchema()', function () {
-    it('should throw an error', function () {
+  describe('.getApproverInfoSchema()', () => {
+    test('should throw an error', () => {
       const schema = approval.getApproverInfoSchema();
-      assert.throws(() => utils.validateSchema(schema, 'wrong'));
+      expect(() => utils.validateSchema(schema, 'wrong')).toThrow();
     });  
 
-    it('should not throw an error', function () {
+    test('should not throw an error', () => {
       const schema = approval.getApproverInfoSchema();
-      assert.doesNotThrow(() => utils.validateSchema(schema, '1.1.1.1'));
+      expect(() => utils.validateSchema(schema, '1.1.1.1')).not.toThrow();
     }); 
   });
 
-  describe('.deinit()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.deinit()', () => { 
+    test('should not throw an exception', async () => {
       await approval.deinit();
     });
-  }); 
+  });
 
   describe('reinitialization', () => {
-    it('should not throw an exception', async function () {
+    test('should not throw an exception', async () => {
       await approval.init();
     });
   });
-  
-  describe('.destroy()', function () { 
-    it('should not throw an exception', async function () {
+
+  describe('.destroy()', () => { 
+    test('should not throw an exception', async () => {
       await approval.destroy();
     });
   });

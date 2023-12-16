@@ -1,129 +1,137 @@
-const assert = require('chai').assert;
-const Task = require('../../src/task/transports/task')();
-const tools = require('../tools');
+import { beforeAll, expect, test, describe } from "bun:test";
+
+import TaskFactory from '../../src/task/transports/task';
+const Task = TaskFactory();
+import tools from '../tools';
 
 describe('Task', () => {
+  let testContext;
+
+  beforeAll(() => {
+    testContext = {};
+  });
+
   let task;
-  
-  describe('instance creation', function () {
-    it('should create an instance', function () {
-      assert.doesNotThrow(() => task = new Task());
-      task.node = this.node;
+
+  describe('instance creation', () => {
+    test('should create an instance', () => {
+      expect(() => task = new Task()).not.toThrow();
+      task.node = testContext.node;
     });
   });
 
-  describe('.init()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.init()', () => { 
+    test('should not throw an exception', async () => {
       await task.init();
     });  
   });
 
-  describe('.add()', function () { 
-    it('should create the task', async function () {
+  describe('.add()', () => { 
+    test('should create the task', async () => {
       const name = 'test';
       const interval = 1;
       const option = 1;
       await task.add(name, interval, () => {}, { test: option });
       const res = task.tasks[name];
-      assert.isObject(res, 'chek the object');
-      assert.equal(res.name, name, 'check the name');
-      assert.equal(res.interval, interval, 'check the interval');
-      assert.equal(res.test, option, 'check the option');
+      expect(typeof res).toBe('object');
+      expect(res.name).toEqual(name);
+      expect(res.interval).toEqual(interval);
+      expect(res.test).toEqual(option);
     });
 
-    it('should update the task', async function () {
+    test('should update the task', async () => {
       const name = 'test';
       const interval = 2;
       const option = 2;
       await task.add(name, interval, () => {}, { test: option });
       const res = task.tasks[name];
-      assert.isObject(res, 'chek the object');
-      assert.equal(res.name, name, 'check the name');
-      assert.equal(res.interval, interval, 'check the interval');
-      assert.equal(res.test, option, 'check the option');
+      expect(typeof res).toBe('object');
+      expect(res.name).toEqual(name);
+      expect(res.interval).toEqual(interval);
+      expect(res.test).toEqual(option);
     }); 
   });
 
-  describe('.get()', function () { 
-    it('should get the task', async function () {
+  describe('.get()', () => { 
+    test('should get the task', async () => {
       const name = 'test';
       const interval = 2;
       const option = 2;
       const res = await task.get(name);
-      assert.isObject(res, 'chek the object');
-      assert.equal(res.name, name, 'check the name');
-      assert.equal(res.interval, interval, 'check the interval');
-      assert.equal(res.test, option, 'check the option');
+      expect(typeof res).toBe('object');
+      expect(res.name).toEqual(name);
+      expect(res.interval).toEqual(interval);
+      expect(res.test).toEqual(option);
     }); 
 
-    it('should not get the wrong task', async function () {
-      assert.isNull(await task.get('wrong'));
+    test('should not get the wrong task', async () => {
+      expect(await task.get('wrong')).toBeNull();
     });
   });
 
-  describe('.remove()', function () { 
-    it('should remove the task', async function () {
+  describe('.remove()', () => { 
+    test('should remove the task', async () => {
       const name = 'test';
       await task.remove(name);
-      assert.isNull(await task.get(name));
+      expect(await task.get(name)).toBeNull();
     }); 
   });
 
-  describe('.start()', function () { 
-    it('should start the task', async function () { 
+  describe('.start()', () => { 
+    test('should start the task', async () => { 
       const res = await task.add('test', 1, () => {});
-      assert.isTrue(res.isStopped, 'check the status before');
+      expect(res.isStopped).toBe(true);
       await task.start(res);
-      assert.isFalse(res.isStopped, 'check the status after');
+      expect(res.isStopped).toBe(false);
     }); 
   });
 
-  describe('.stop()', function () { 
-    it('should stop the task', async function () {
+  describe('.stop()', () => { 
+    test('should stop the task', async () => {
       const res = await task.get('test');
-      assert.isFalse(res.isStopped, 'check the status before');
+      expect(res.isStopped).toBe(false);
       await task.stop(res);
-      assert.isTrue(res.isStopped, 'check the status after');
+      expect(res.isStopped).toBe(true);
     }); 
   });
 
-  describe('.run()', function () { 
-    it('should run the task callback', async function () {
+  describe('.run()', () => { 
+    test('should run the task callback', async () => {
       let counter = 0;
       const res = await task.add('test', 1, () => counter++);
       await task.start(res);
       await task.run(res);
-      assert.equal(counter, 1, 'check the function calling');
+      expect(counter).toEqual(1);
     }); 
   });
 
-  describe('blocking', function () { 
-    it('should block the task', async function () {
+  describe('blocking', () => { 
+    test('should block the task', async () => {
       let counter = 0;
       let interval = 100;
       const res = await task.add('test', interval, async () => (await tools.wait(interval), counter++)); 
       await task.start(res); 
       await Promise.all([task.run(res), task.run(res)]);
-      assert.equal(counter, 1, 'check after the first iteration');
+      expect(counter).toEqual(1);
       await task.run(res);
-      assert.equal(counter, 2, 'check after the second iteration');
+      expect(counter).toEqual(2);
     });
   });
 
-  describe('.deinit()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.deinit()', () => { 
+    test('should not throw an exception', async () => {
       await task.deinit();
     });
-  }); 
+  });
 
   describe('reinitialization', () => {
-    it('should not throw an exception', async function () {
+    test('should not throw an exception', async () => {
       await task.init();
     });
   });
-  
-  describe('.destroy()', function () { 
-    it('should not throw an exception', async function () {
+
+  describe('.destroy()', () => { 
+    test('should not throw an exception', async () => {
       await task.destroy();
     });
   });

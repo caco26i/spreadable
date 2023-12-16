@@ -1,49 +1,57 @@
-const assert = require('chai').assert;
-const TaskCron = require('../../src/task/transports/cron')();
-const tools = require('../tools');
+import { beforeAll, expect, test, describe } from "bun:test";
+
+import TaskCronFactory from '../../src/task/transports/cron';
+const TaskCron = TaskCronFactory();
+import tools from '../tools';
 
 describe('TaskCron', () => {
+  let testContext;
+
+  beforeAll(() => {
+    testContext = {};
+  });
+
   let task;
-  
-  describe('instance creation', function () {
-    it('should create an instance', function () {
-      assert.doesNotThrow(() => task = new TaskCron());
-      task.node = this.node;
+
+  describe('instance creation', () => {
+    test('should create an instance', () => {
+      expect(() => task = new TaskCron()).not.toThrow();
+      task.node = testContext.node;
     });
   });
 
-  describe('.init()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.init()', () => { 
+    test('should not throw an exception', async () => {
       await task.init();
     });  
   });
 
-  describe('.start()', function () { 
-    it('should start the task every 1s', async function () {
+  describe('.start()', () => { 
+    test('should start the task every 1s', async () => {
       let counter = 0;
       const interval = 1000;
       const res = await task.add('test', '* * * * * *', () => counter++);      
       await task.start(res);
-      assert.equal(counter, 0, 'check before');
+      expect(counter).toEqual(0);
       await tools.wait(interval * 2);
-      assert.isOk(counter > 0, 'check after');
+      expect(counter > 0).toBeTruthy();
     });
   });
 
-  describe('.deinit()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.deinit()', () => { 
+    test('should not throw an exception', async () => {
       await task.deinit();
     });
-  }); 
+  });
 
   describe('reinitialization', () => {
-    it('should not throw an exception', async function () {
+    test('should not throw an exception', async () => {
       await task.init();
     });
   });
-  
-  describe('.destroy()', function () { 
-    it('should not throw an exception', async function () {
+
+  describe('.destroy()', () => { 
+    test('should not throw an exception', async () => {
       await task.destroy();
     });
   });

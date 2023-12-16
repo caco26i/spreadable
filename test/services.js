@@ -1,16 +1,24 @@
-const Node = require('../src/node')();
-const tools = require('./tools');
+import {afterAll, beforeAll, expect, test, describe } from "bun:test";
+import NodeFactory from '../src/node';
+const Node = NodeFactory();
+import tools from './tools';
 
 describe('services', () => {
-  before(async function () {
-    this.node = new Node(await tools.createNodeOptions({ server: false }));
-    await this.node.init();
-  });  
+  let testContext;
 
-  after(async function () {
-    await this.node.destroy();
-  });  
-  
+  beforeAll(() => {
+    testContext = {};
+  });
+
+  beforeAll(async () => {
+    testContext.node = new Node(await tools.createNodeOptions({ server: false }));
+    await testContext.node.init();
+  });
+
+  afterAll(async () => {
+    await testContext.node.destroy();
+  });
+
   describe('db', () => {
     require('./db/database');
     require('./db/loki');    

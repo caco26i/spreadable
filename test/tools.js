@@ -1,8 +1,9 @@
-const path = require('path');
-const _ = require('lodash');
-const getPort = require('get-port');
-const FormData = require('form-data');
-const fse = require('fs-extra');
+import path from 'path';
+import _ from 'lodash';
+import getPort from 'get-port';
+import FormData from 'form-data';
+import fse from 'fs-extra';
+
 const tools = {};
 
 tools.tmpPath = path.join(process.cwd(), 'test/tmp');
@@ -110,7 +111,7 @@ tools.getFreePort = async function () {
  * @returns {object}
  */
 tools.createNodeOptions = async function (options = {}) {
-  const port = options.port || await this.getFreePort();   
+  const port = options.port || (await this.getFreePort());   
 
   return _.merge({
     port,
@@ -181,4 +182,4 @@ tools.nodesSync = async function (nodes, count = 1) {
   }
 };
 
-module.exports = tools;
+export default tools;

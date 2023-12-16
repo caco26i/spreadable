@@ -1,63 +1,67 @@
-const assert = require('chai').assert;
-const Service = require('../src/service')();
+import { beforeAll, expect, test, describe } from "bun:test";
+import ServiceFactory from '../src/service';
+const Service = ServiceFactory();
 
 describe('Service', () => {
   let service;
 
   describe('instance creation', () => {
-    it('should create an instance', async () => { 
-      assert.doesNotThrow(() => service = new Service());
+    test('should create an instance', async () => { 
+      expect(() => service = new Service()).not.toThrow();
     });
   });
 
   describe('.init()', () => {
-    it('should not initialize the slave service without registration', async () => {
-      try {
-        await service.init();
-        throw new Error('Fail');
+    test(
+      'should not initialize the slave service without registration',
+      async () => {
+        try {
+          await service.init();
+          throw new Error('Fail');
+        }
+        catch(err) {
+          expect(err.message.match('You have to register')).toBeTruthy(); 
+        }      
       }
-      catch(err) {
-        assert.isOk(err.message.match('You have to register')); 
-      }      
-    });
+    );
 
-    it('should initialize the service', async () => {      
+    test('should initialize the service', async () => {      
       service.__isMasterService = true;
       await service.init();
-      assert.typeOf(service.__initialized, 'number');
+      expect(typeof service.__initialized).toBe('number');
     });
   });
 
   describe('.isInitialized()', () => {
-    it('should be true', () => {
-      assert.isTrue(service.isInitialized());
+    test('should be true', () => {
+      expect(service.isInitialized()).toBe(true);
     });
   });
 
   describe('.deinit()', () => {
-    it('should deinitialize the server', async () => {
+    test('should deinitialize the server', async () => {
       await service.deinit();
-      assert.isFalse(service.__initialized);
+      expect(service.__initialized).toBe(false);
     });
   });
 
   describe('.isInitialized()', () => {
-    it('should be false', () => {
-      assert.isFalse(service.isInitialized());
+    test('should be false', () => {
+      expect(service.isInitialized()).toBe(false);
     });
   });
 
   describe('reinitialization', () => {
-    it('should not throw an exception', async () => {
+    test('should not throw an exception', async () => {
       await service.init();
-      assert.isOk(service.isInitialized());
+      expect(service.isInitialized()).toBeTruthy();
     });
   });
 
   describe('.destroy()', () => {
-    it('should destroy the service', async () => {
+    test('should destroy the service', async () => {
       await service.destroy();
-      assert.isFalse(service.isInitialized());
+      expect(service.isInitialized()).toBe(false);
     });
   });
 });

@@ -1,66 +1,74 @@
-const assert = require('chai').assert;
-const fetch = require('node-fetch');
-const https = require('https');
-const Server = require('../../src/server/transports/server')();
-const utils = require('../../src/utils');
-const selfsigned = require('selfsigned');
+import { beforeAll, expect, test, describe } from "bun:test";
+
+import fetch from 'node-fetch';
+import https from 'https';
+import ServerFactory from '../../src/server/transports/server';
+const Server = ServerFactory();
+import utils from '../../src/utils';
+import selfsigned from 'selfsigned';
 
 describe('Server', () => {
+  let testContext;
+
+  beforeAll(() => {
+    testContext = {};
+  });
+
   let server;
   let nodeServer;
 
-  describe('instance creation', function () {
-    it('should create an instance', function () { 
-      assert.doesNotThrow(() => server = new Server());
-      server.node = this.node;
-      nodeServer = this.node.server;
-      this.node.server = server;
+  describe('instance creation', () => {
+    test('should create an instance', () => { 
+      expect(() => server = new Server()).not.toThrow();
+      server.node = testContext.node;
+      nodeServer = testContext.node.server;
+      testContext.node.server = server;
     });
   });
 
-  describe('.init()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.init()', () => { 
+    test('should not throw an exception', async () => {
       await server.init();
     });
     
-    it('should ping to the server', async function () {
-      const res = await fetch(`http://${this.node.address}`);  
-      assert.equal(res.status, 200);
+    test('should ping to the server', async () => {
+      const res = await fetch(`http://${testContext.node.address}`);  
+      expect(res.status).toEqual(200);
     });
   });
-  
-  describe('.deinit()', function () { 
-    it('should not throw an exception', async function () {
+
+  describe('.deinit()', () => { 
+    test('should not throw an exception', async () => {
       await server.deinit();
     });
 
-    it('should not ping to the server', async function () {
-      assert.isFalse(await utils.isPortUsed(this.node.port));
+    test('should not ping to the server', async () => {
+      expect(await utils.isPortUsed(testContext.node.port)).toBe(false);
     });
-  }); 
+  });
 
   describe('reinitialization', () => {
-    it('should not throw an exception', async function () { 
+    test('should not throw an exception', async () => { 
       const pems = selfsigned.generate();
       server.options.https = { key: pems.private, cert: pems.cert, ca: pems.clientcert };
       await server.init();
     });
 
-    it('should ping to the server', async function () {  
+    test('should ping to the server', async () => {  
       const agent = new https.Agent({ rejectUnauthorized: false });
-      const res = await fetch(`https://${this.node.address}`, { agent });  
-      assert.equal(res.status, 200);
+      const res = await fetch(`https://${testContext.node.address}`, { agent });  
+      expect(res.status).toEqual(200);
     });
   });
-  
-  describe('.destroy()', function () { 
-    it('should not throw an exception', async function () {
+
+  describe('.destroy()', () => { 
+    test('should not throw an exception', async () => {
       await server.destroy();
-      this.node.server = nodeServer;
+      testContext.node.server = nodeServer;
     });
 
-    it('should not ping to the server', async function () {
-      assert.isFalse(await utils.isPortUsed(this.node.port));
+    test('should not ping to the server', async () => {
+      expect(await utils.isPortUsed(testContext.node.port)).toBe(false);
     });
   });
 });

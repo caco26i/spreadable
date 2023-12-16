@@ -1,37 +1,45 @@
-const assert = require('chai').assert;
-const Cache = require('../../src/cache/transports/cache')();
+import { beforeAll, expect, test, describe } from "bun:test";
+
+import CacheFactory from '../../src/cache/transports/cache';
+const Cache = CacheFactory();
 
 describe('Cache', () => {
+  let testContext;
+
+  beforeAll(() => {
+    testContext = {};
+  });
+
   let cache;
 
-  describe('instance creation', function () {
-    it('should create an instance', function () { 
-      assert.doesNotThrow(() => cache = new Cache());  
-      cache.node = this.node;
+  describe('instance creation', () => {
+    test('should create an instance', () => { 
+      expect(() => cache = new Cache()).not.toThrow();  
+      cache.node = testContext.node;
       cache.name = 'test';
     });
   });
 
-  describe('.init()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.init()', () => { 
+    test('should not throw an exception', async () => {
       await cache.init();
     });  
   });
-  
-  describe('.deinit()', function () { 
-    it('should not throw an exception', async function () {
+
+  describe('.deinit()', () => { 
+    test('should not throw an exception', async () => {
       await cache.deinit();
     });
-  }); 
+  });
 
   describe('reinitialization', () => {
-    it('should not throw an exception', async function () {
+    test('should not throw an exception', async () => {
       await cache.init();
     });
   });
-  
-  describe('.destroy()', function () { 
-    it('should not throw an exception', async function () {
+
+  describe('.destroy()', () => { 
+    test('should not throw an exception', async () => {
       await cache.destroy();
     });
   });

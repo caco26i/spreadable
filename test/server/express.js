@@ -1,41 +1,49 @@
-const assert = require('chai').assert;
-const ServerExpress = require('../../src/server/transports/express')();
+import { beforeAll, expect, test, describe } from "bun:test";
+
+import ServerExpressFactory from '../../src/server/transports/express';
+const ServerExpress = ServerExpressFactory();
 
 describe('ServerExpress', () => {
+  let testContext;
+
+  beforeAll(() => {
+    testContext = {};
+  });
+
   let server;
   let nodeServer;
 
-  describe('instance creation', function () {
-    it('should create an instance', function () { 
-      assert.doesNotThrow(() => server = new ServerExpress());  
-      server.node = this.node;
-      nodeServer = this.node.server;
-      this.node.server = server; 
+  describe('instance creation', () => {
+    test('should create an instance', () => { 
+      expect(() => server = new ServerExpress()).not.toThrow();  
+      server.node = testContext.node;
+      nodeServer = testContext.node.server;
+      testContext.node.server = server; 
     });
   });
 
-  describe('.init()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.init()', () => { 
+    test('should not throw an exception', async () => {
       await server.init();
     });
   });
-  
-  describe('.deinit()', function () { 
-    it('should not throw an exception', async function () {
+
+  describe('.deinit()', () => { 
+    test('should not throw an exception', async () => {
       await server.deinit();
     });
-  }); 
+  });
 
   describe('reinitialization', () => {
-    it('should not throw an exception', async function () {
+    test('should not throw an exception', async () => {
       await server.init();
     });
   });
-  
-  describe('.destroy()', function () { 
-    it('should not throw an exception', async function () {
+
+  describe('.destroy()', () => { 
+    test('should not throw an exception', async () => {
       await server.destroy();
-      this.node.server = nodeServer; 
+      testContext.node.server = nodeServer; 
     });
   });
 });

@@ -1,40 +1,48 @@
-const assert = require('chai').assert;
-const BehaviorFail = require('../../src/behavior/transports/fail')();
+import { beforeAll, expect, test, describe } from "bun:test";
+
+import BehaviorFailFactory from '../../src/behavior/transports/fail';
+const BehaviorFail = BehaviorFailFactory();
 
 describe('Behavior', () => {
+  let testContext;
+
+  beforeAll(() => {
+    testContext = {};
+  });
+
   let behavior;
-  
-  describe('instance creation', function () {
-    it('should create an instance', function () {
-      assert.doesNotThrow(() => behavior = new BehaviorFail());
-      behavior.node = this.node;
+
+  describe('instance creation', () => {
+    test('should create an instance', () => {
+      expect(() => behavior = new BehaviorFail()).not.toThrow();
+      behavior.node = testContext.node;
     });
 
-    it('should create the default properties', function () {
+    test('should create the default properties', () => {
       assert.containsAllKeys(behavior, ['ban', 'banLifetime', 'failSuspicionLevel']);
     });
   });
 
-  describe('.init()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.init()', () => { 
+    test('should not throw an exception', async () => {
       await behavior.init();
     });  
   });
 
-  describe('.deinit()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.deinit()', () => { 
+    test('should not throw an exception', async () => {
       await behavior.deinit();
     });
-  }); 
+  });
 
   describe('reinitialization', () => {
-    it('should not throw an exception', async function () {
+    test('should not throw an exception', async () => {
       await behavior.init();
     });
   });
-  
-  describe('.destroy()', function () { 
-    it('should not throw an exception', async function () {
+
+  describe('.destroy()', () => { 
+    test('should not throw an exception', async () => {
       await behavior.destroy();
     });
   });

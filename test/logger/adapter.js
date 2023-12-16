@@ -1,7 +1,10 @@
-const assert = require('chai').assert;
-const LoggerAdapter = require('../../src/logger/transports/adapter')();
-const Logger = require('../../src/logger/transports/logger')();
-const transports = require('../../src/logger');
+import { beforeAll, expect, test, describe } from "bun:test";
+
+import LoggerAdapterFactory from '../../src/logger/transports/adapter';
+const LoggerAdapter = LoggerAdapterFactory();
+import LoggerFactory from '../../src/logger/transports/logger';
+const Logger = LoggerFactory();
+import transports from '../../src/logger';
 
 class LoggerInterface extends Logger {
   constructor() {
@@ -33,153 +36,159 @@ class LoggerInterface extends Logger {
 
 transports.LoggerInterface = LoggerInterface;
 
-describe('LoggerConsole', function () {
-  let logger;  
-  
-  describe('instance creation', function () {
-    it('should create an instance', function () {
-      assert.doesNotThrow(() => logger = new LoggerAdapter( { 
+describe('LoggerConsole', () => {
+  let testContext;
+
+  beforeAll(() => {
+    testContext = {};
+  });
+
+  let logger;
+
+  describe('instance creation', () => {
+    test('should create an instance', () => {
+      expect(() => logger = new LoggerAdapter( { 
         transports: [
           { transport: LoggerInterface, options: { x: 1 } },
           { transport: 'LoggerInterface', options: { x: 2 } }
         ]
-      }));
-      logger.node = this.node;
+      })).not.toThrow();
+      logger.node = testContext.node;
     });
   });
 
-  describe('.init()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.init()', () => { 
+    test('should not throw an exception', async () => {
       await logger.init();
     });  
 
-    it('should add two transports', async function () {
-      assert.equal(logger.transports.length, 2);
+    test('should add two transports', async () => {
+      expect(logger.transports.length).toEqual(2);
     }); 
 
-    it('should add the transport options', async function () {
-      assert.equal(logger.transports[0].options.x, 1, 'check the first');
-      assert.equal(logger.transports[1].options.x, 2, 'check the second');
+    test('should add the transport options', async () => {
+      expect(logger.transports[0].options.x).toEqual(1);
+      expect(logger.transports[1].options.x).toEqual(2);
     }); 
 
-    it('should increment', async function () {
-      assert.equal(logger.transports[0].initCounter, 1, 'check the first');
-      assert.equal(logger.transports[1].initCounter, 1, 'check the second');
+    test('should increment', async () => {
+      expect(logger.transports[0].initCounter).toEqual(1);
+      expect(logger.transports[1].initCounter).toEqual(1);
     }); 
   });
 
-  describe('.info()', function () { 
-    it('should not increment', async function () {
+  describe('.info()', () => { 
+    test('should not increment', async () => {
       logger.level = 'warn';
       await logger.info();
-      assert.equal(logger.transports[0].infoCounter, 0, 'check the first');
-      assert.equal(logger.transports[1].infoCounter, 0, 'check the second');
+      expect(logger.transports[0].infoCounter).toEqual(0);
+      expect(logger.transports[1].infoCounter).toEqual(0);
     }); 
 
-    it('should increment', async function () {
+    test('should increment', async () => {
       logger.level = 'info';
       await logger.info();
-      assert.equal(logger.transports[0].infoCounter, 1, 'check the first');
-      assert.equal(logger.transports[1].infoCounter, 1, 'check the second');
+      expect(logger.transports[0].infoCounter).toEqual(1);
+      expect(logger.transports[1].infoCounter).toEqual(1);
     }); 
   });
 
-  describe('.warn()', function () { 
-    it('should not increment', async function () {
+  describe('.warn()', () => { 
+    test('should not increment', async () => {
       logger.level = 'error';
       await logger.info();
-      assert.equal(logger.transports[0].warnCounter, 0, 'check the first');
-      assert.equal(logger.transports[1].warnCounter, 0, 'check the second');
+      expect(logger.transports[0].warnCounter).toEqual(0);
+      expect(logger.transports[1].warnCounter).toEqual(0);
     });
 
-    it('should increment', async function () {
+    test('should increment', async () => {
       logger.level = 'warn';
       await logger.warn();
-      assert.equal(logger.transports[0].warnCounter, 1, 'check the first');
-      assert.equal(logger.transports[1].warnCounter, 1, 'check the second');
+      expect(logger.transports[0].warnCounter).toEqual(1);
+      expect(logger.transports[1].warnCounter).toEqual(1);
     });    
   });
 
-  describe('.error()', function () { 
-    it('should not increment', async function () {
+  describe('.error()', () => { 
+    test('should not increment', async () => {
       logger.level = false;
       await logger.info();
-      assert.equal(logger.transports[0].errorCounter, 0, 'check the first');
-      assert.equal(logger.transports[1].errorCounter, 0, 'check the second');
+      expect(logger.transports[0].errorCounter).toEqual(0);
+      expect(logger.transports[1].errorCounter).toEqual(0);
     });
 
-    it('should increment', async function () {
+    test('should increment', async () => {
       logger.level = 'error';
       await logger.error();
-      assert.equal(logger.transports[0].errorCounter, 1, 'check the first');
-      assert.equal(logger.transports[1].errorCounter, 1, 'check the second');
+      expect(logger.transports[0].errorCounter).toEqual(1);
+      expect(logger.transports[1].errorCounter).toEqual(1);
     });    
   });
 
-  describe('.addTransport()', function () { 
-    it('should add a new transport', async function () {
+  describe('.addTransport()', () => { 
+    test('should add a new transport', async () => {
       logger.addTransport(new LoggerInterface({ x: 3 }));
-      assert.equal(logger.transports[2].options.x, 3);
+      expect(logger.transports[2].options.x).toEqual(3);
     });  
   });
 
-  describe('.removeTransport()', function () { 
-    it('should add a new transport', async function () {
+  describe('.removeTransport()', () => { 
+    test('should add a new transport', async () => {
       logger.removeTransport(logger.transports[2]);
-      assert.isUndefined(logger.transports[2]);
+      expect(logger.transports[2]).not.toBeDefined();
     });  
   });
 
-  describe('.deinit()', function () { 
+  describe('.deinit()', () => { 
     let first;
     let second;
 
-    before(function () {
+    beforeAll(() => {
       first = logger.transports[0];
       second = logger.transports[1];
     });
 
-    it('should not throw an exception', async function () {
+    test('should not throw an exception', async () => {
       await logger.deinit();
     });
 
-    it('should remove transports', async function () {
-      assert.lengthOf(logger.transports, 0);
+    test('should remove transports', async () => {
+      expect(logger.transports.length).toBe(0);
     });
 
-    it('should increment', async function () {
-      assert.equal(first.deinitCounter, 1, 'check the first');
-      assert.equal(second.deinitCounter, 1, 'check the second');
+    test('should increment', async () => {
+      expect(first.deinitCounter).toEqual(1);
+      expect(second.deinitCounter).toEqual(1);
     });
-  }); 
+  });
 
   describe('reinitialization', () => {
-    it('should not throw an exception', async function () {
+    test('should not throw an exception', async () => {
       await logger.init();
     });
 
-    it('should increment', async function () {
-      assert.equal(logger.transports[0].initCounter, 1, 'check the first');
-      assert.equal(logger.transports[1].initCounter, 1, 'check the second');
+    test('should increment', async () => {
+      expect(logger.transports[0].initCounter).toEqual(1);
+      expect(logger.transports[1].initCounter).toEqual(1);
     });
   });
-  
-  describe('.destroy()', function () { 
+
+  describe('.destroy()', () => { 
     let first;
     let second;
 
-    before(function () {
+    beforeAll(() => {
       first = logger.transports[0];
       second = logger.transports[1];
     });
 
-    it('should not throw an exception', async function () {
+    test('should not throw an exception', async () => {
       await logger.destroy();
     });
 
-    it('should increment', async function () {
-      assert.equal(first.destroyCounter, 1, 'check the first');
-      assert.equal(second.destroyCounter, 1, 'check the second');
+    test('should increment', async () => {
+      expect(first.destroyCounter).toEqual(1);
+      expect(second.destroyCounter).toEqual(1);
     });
   });
 });

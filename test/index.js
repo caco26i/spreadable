@@ -1,9 +1,9 @@
-const fse = require('fs-extra');
-const tools = require('./tools');
+import fse from 'fs-extra';
+import tools from './tools';
 
 describe('spreadable', () => {
-  before(() => fse.ensureDir(tools.tmpPath));
-  after(() => fse.remove(tools.tmpPath));
+  beforeAll(() => fse.ensureDir(tools.tmpPath));
+  afterAll(() => fse.remove(tools.tmpPath));
   require('./utils');
   require('./service');
   require('./node');

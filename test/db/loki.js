@@ -1,494 +1,516 @@
-const assert = require('chai').assert;
-const fse = require('fs-extra');
-const path = require('path');
-const tools = require('../tools');
-const utils = require('../../src/utils');
-const DatabaseLoki = require('../../src/db/transports/loki')();
-const BehaviorFail = require('../../src/behavior/transports/fail')();
-const Approval = require('../../src/approval/transports/approval')();
+import { beforeAll, expect, test, describe } from "bun:test";
+
+import fse from 'fs-extra';
+import path from 'path';
+import tools from '../tools';
+import utils from '../../src/utils';
+import DatabaseLokiFactory from '../../src/db/transports/loki';
+const DatabaseLoki = DatabaseLokiFactory();
+import BehaviorFailFactory from '../../src/behavior/transports/fail';
+const BehaviorFail = BehaviorFailFactory();
+import ApprovalFactory from '../../src/approval/transports/approval';
+const Approval = ApprovalFactory();
 
 describe('DatabaseLoki', () => {
+  let testContext;
+
+  beforeAll(() => {
+    testContext = {};
+  });
+
   let loki;
   let lastNodeDb;
-  
-  describe('instance creation', function () {
-    it('should create an instance', function () { 
-      assert.doesNotThrow(() => loki = new DatabaseLoki({
+
+  describe('instance creation', () => {
+    test('should create an instance', () => { 
+      expect(() => loki = new DatabaseLoki({
         filename: tools.getDbFilePath(this.node)
-      }));  
-      loki.node = this.node;
-      lastNodeDb = this.node.db;
-      this.node.db = loki;  
+      })).not.toThrow();  
+      loki.node = testContext.node;
+      lastNodeDb = testContext.node.db;
+      testContext.node.db = loki;  
     });
   });
 
-  describe('.init()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.init()', () => { 
+    test('should not throw an exception', async () => {
       await loki.init();
     });  
     
-    it('should create the db file', async function () {    
-      assert.isTrue(await fse.pathExists(tools.getDbFilePath(this.node)));
+    test('should create the db file', async () => {    
+      expect(await fse.pathExists(tools.getDbFilePath(testContext.node))).toBe(true);
     });
   });
-  
-  describe('.setData()', function () { 
-    it('should set the value', async function () {
+
+  describe('.setData()', () => { 
+    test('should set the value', async () => {
       await loki.setData('test', 'test');
       const obj = loki.col.data.findOne({ name: 'test' });
-      assert.equal(obj.value, 'test');
+      expect(obj.value).toEqual('test');
     }); 
   });
 
-  describe('.getData()', function () { 
-    it('should get the value', async function () {
-      assert.equal(await loki.getData('test'), 'test');
+  describe('.getData()', () => { 
+    test('should get the value', async () => {
+      expect(await loki.getData('test')).toEqual('test');
     }); 
   });
 
-  describe('.addSlave()', function () {
-    it('should add the slave', async function () {
+  describe('.addSlave()', () => {
+    test('should add the slave', async () => {
       const address = 'localhost:1';
       await loki.addSlave(address);
-      assert.isObject(await loki.col.servers.findOne({ address, isSlave: true }));
+      expect(typeof (await loki.col.servers.findOne({ address, isSlave: true }))).toBe('object');
     }); 
 
-    it('should edit the slave', async function () {
+    test('should edit the slave', async () => {
       const address = 'localhost:1';
       await loki.addSlave(address);
       const servers = await loki.col.servers.find({ address, isSlave: true });
-      assert.equal(servers.length, 1);
+      expect(servers.length).toEqual(1);
     });
   });
 
-  describe('.hasSlave()', function () {
-    it('should return true', async function () {
-      assert.isTrue(await loki.hasSlave('localhost:1'));
+  describe('.hasSlave()', () => {
+    test('should return true', async () => {
+      expect(await loki.hasSlave('localhost:1')).toBe(true);
     }); 
 
-    it('should not return true', async function () {  
-      assert.isFalse(await loki.hasSlave('undefined'));
+    test('should not return true', async () => {  
+      expect(await loki.hasSlave('undefined')).toBe(false);
     });
   });
 
-  describe('.getSlaves()', function () {
-    it('should get one slave', async function () {
+  describe('.getSlaves()', () => {
+    test('should get one slave', async () => {
       const slaves = await loki.getSlaves();
-      assert.equal(slaves.length, 1);
+      expect(slaves.length).toEqual(1);
     });
 
-    it('should get two slaves', async function () {
+    test('should get two slaves', async () => {
       await loki.addSlave('localhost:2');
       const slaves = await loki.getSlaves();
-      assert.equal(slaves.length, 2);
+      expect(slaves.length).toEqual(2);
     });
   });
 
-  describe('.addBacklink()', function () {
-    it('should add the backlink', async function () {
+  describe('.addBacklink()', () => {
+    test('should add the backlink', async () => {
       const address = 'localhost:3';
       await loki.addBacklink(address);
-      assert.isObject(await loki.col.servers.findOne({ address, isBacklink: true }));
+      expect(typeof (await loki.col.servers.findOne({ address, isBacklink: true }))).toBe('object');
     });
 
-    it('should change the backlink and add it into the existent slave', async function () {
-      const address = 'localhost:1';
-      await loki.addBacklink(address);
-      const servers = await loki.col.servers.find({ address, isBacklink: true });
-      assert.equal(servers.length, 1, 'check servers count');
-      assert.isTrue(servers[0].isSlave, 'check the backlink is a slave');
-    });
+    test(
+      'should change the backlink and add it into the existent slave',
+      async () => {
+        const address = 'localhost:1';
+        await loki.addBacklink(address);
+        const servers = await loki.col.servers.find({ address, isBacklink: true });
+        expect(servers.length).toEqual(1);
+        expect(servers[0].isSlave).toBe(true);
+      }
+    );
 
-    it('should edit the slave', async function () {
+    test('should edit the slave', async () => {
       const address = 'localhost:1';
       await loki.addBacklink(address);
       const servers = await loki.col.servers.find({ address });
-      assert.equal(servers.length, 1);
+      expect(servers.length).toEqual(1);
     });
   });
 
-  describe('.getBacklink()', function () {
-    it('should get the backlink', async function () {
+  describe('.getBacklink()', () => {
+    test('should get the backlink', async () => {
       const backlink = await loki.getBacklink();
-      assert.isTrue(backlink.isBacklink);
+      expect(backlink.isBacklink).toBe(true);
     });
   });
 
-  describe('.addMaster()', function () {
-    it('should add the master', async function () {
+  describe('.addMaster()', () => {
+    test('should add the master', async () => {
       const address = 'localhost:3';
       await loki.addMaster(address, 0);
-      assert.isObject(await loki.col.servers.findOne({ address, isMaster: true }));
+      expect(typeof (await loki.col.servers.findOne({ address, isMaster: true }))).toBe('object');
     }); 
 
-    it('should change the master and add it into the existent slave', async function () {
-      const address = 'localhost:1';
-      await loki.addMaster(address, 1);
-      const servers = await loki.col.servers.find({ address, isMaster: true });
-      assert.equal(servers.length, 1, 'check servers count');
-      assert.isTrue(servers[0].isSlave, 'check the master is a slave');
-    });
+    test(
+      'should change the master and add it into the existent slave',
+      async () => {
+        const address = 'localhost:1';
+        await loki.addMaster(address, 1);
+        const servers = await loki.col.servers.find({ address, isMaster: true });
+        expect(servers.length).toEqual(1);
+        expect(servers[0].isSlave).toBe(true);
+      }
+    );
 
-    it('should edit the master', async function () {
+    test('should edit the master', async () => {
       const address = 'localhost:1';
       await loki.addMaster(address, 2);
       const servers = await loki.col.servers.find({ address, isMaster: true });
       const obj = servers[0];
-      assert.equal(servers.length, 1, 'check the servers count');
-      assert.equal(obj.size, 2, 'check the size');
+      expect(servers.length).toEqual(1);
+      expect(obj.size).toEqual(2);
     });
   });
 
-  describe('.getMastersCount()', function () {
-    it('should return two', async function () {
-      assert.equal(await loki.getMastersCount(), 2);
+  describe('.getMastersCount()', () => {
+    test('should return two', async () => {
+      expect(await loki.getMastersCount()).toEqual(2);
     });
 
-    it('should return three', async function () {
+    test('should return three', async () => {
       await loki.addMaster('localhost:4', 0);
-      assert.equal(await loki.getMastersCount(), 3);
+      expect(await loki.getMastersCount()).toEqual(3);
     });
   });
 
-  describe('.getSlavesCount()', function () {
-    it('should return two', async function () {
-      assert.equal(await loki.getSlavesCount(), 2);
+  describe('.getSlavesCount()', () => {
+    test('should return two', async () => {
+      expect(await loki.getSlavesCount()).toEqual(2);
     });
 
-    it('should return three', async function () {
+    test('should return three', async () => {
       await loki.addSlave('localhost:5', 0);
-      assert.equal(await loki.getSlavesCount(), 3);
+      expect(await loki.getSlavesCount()).toEqual(3);
     });
   });
 
-  describe('.getMasters()', function () {
-    it('should return three masters', async function () {
+  describe('.getMasters()', () => {
+    test('should return three masters', async () => {
       const masters = await loki.getMasters();
-      assert.equal(masters.length, 3, 'check the masters count');
+      expect(masters.length).toEqual(3);
 
       for(let i = 0; i < masters.length; i++) {
-        assert.isTrue(masters[i].isMaster, 'check the master status');
+        expect(masters[i].isMaster).toBe(true);
       }
     });
   });
 
-  describe('.getMaster()', function () {
-    it('should return the necessary master', async function () {
+  describe('.getMaster()', () => {
+    test('should return the necessary master', async () => {
       const master = await loki.getMaster('localhost:4');
-      assert.equal(master.address, 'localhost:4');
+      expect(master.address).toEqual('localhost:4');
     });
 
-    it('should not return the wrong master', async function () {
-      assert.isNull(await loki.getMaster('localhost:2'));
+    test('should not return the wrong master', async () => {
+      expect(await loki.getMaster('localhost:2')).toBeNull();
     });
   });
 
-  describe('.getServer()', function () {
-    it('should return the necessary server', async function () {
+  describe('.getServer()', () => {
+    test('should return the necessary server', async () => {
       const server = await loki.getServer('localhost:4');
-      assert.equal(server.address, 'localhost:4');
+      expect(server.address).toEqual('localhost:4');
     });
 
-    it('should not return the wrong server', async function () {
-      assert.isNull(await loki.getServer('localhost:20'));
+    test('should not return the wrong server', async () => {
+      expect(await loki.getServer('localhost:20')).toBeNull();
     });
   });
 
-  describe('.getServers()', function () {
-    it('should return all servers', async function () {
+  describe('.getServers()', () => {
+    test('should return all servers', async () => {
       const servers = await loki.getServers('localhost:4');
-      assert.equal(servers.length, 5);
+      expect(servers.length).toEqual(5);
     });
   });
 
-  describe('.removeSlave()', function () {
-    it('should remove new slave', async function () {
+  describe('.removeSlave()', () => {
+    test('should remove new slave', async () => {
       const count = await loki.getSlavesCount();
       await loki.addSlave('localhost:6');
-      assert.equal(await loki.getSlavesCount(), count + 1, 'check before');
+      expect(await loki.getSlavesCount()).toEqual(count + 1);
       await loki.removeSlave('localhost:6');
-      assert.equal(await loki.getSlavesCount(), count, 'check after');
+      expect(await loki.getSlavesCount()).toEqual(count);
     });
   });
 
-  describe('.removeSlaves()', function () {
-    it('should remove all slaves', async function () {
+  describe('.removeSlaves()', () => {
+    test('should remove all slaves', async () => {
       const count = await loki.getSlavesCount();
-      assert.isOk(count > 0, 'check before');
+      expect(count > 0).toBeTruthy();
       await loki.removeSlaves();
-      assert.equal(await loki.getSlavesCount(), 0, 'check .getSlavesCount()');
-      assert.equal((await loki.getSlaves()).length, 0, 'check .getSlaves()');
-      assert.equal((await loki.getServers()).length, 3, 'check .getServers()');
+      expect(await loki.getSlavesCount()).toEqual(0);
+      expect((await loki.getSlaves()).length).toEqual(0);
+      expect((await loki.getServers()).length).toEqual(3);
     });
   });
 
-  describe('.isMaster()', function () {
-    it('should be false', async function () {
-      assert.isFalse(await loki.isMaster());
+  describe('.isMaster()', () => {
+    test('should be false', async () => {
+      expect(await loki.isMaster()).toBe(false);
     });
 
-    it('should be true', async function () {
+    test('should be true', async () => {
       await loki.addSlave('localhost:1');
-      assert.isTrue(await loki.isMaster());
+      expect(await loki.isMaster()).toBe(true);
     });
   });
 
-  describe('.shiftSlaves()', function () {
-    it('should shift 2 slaves', async function () {
+  describe('.shiftSlaves()', () => {
+    test('should shift 2 slaves', async () => {
       await loki.addSlave('localhost:2');
       await loki.addSlave('localhost:3');
       const count = await loki.getSlavesCount();
       const limit = 2;
       await loki.shiftSlaves(limit);
-      assert.equal(await loki.getSlavesCount(), await count - limit, 'check the count');
-      assert.equal((await loki.getSlaves())[0].address, 'localhost:1', 'check the sort');
+      expect(await loki.getSlavesCount()).toEqual((await count) - limit);
+      expect((await loki.getSlaves())[0].address).toEqual('localhost:1');
     });
   });
 
-  describe('.removeBacklink()', function () {
-    it('should remove the backlink', async function () {
+  describe('.removeBacklink()', () => {
+    test('should remove the backlink', async () => {
       const count = (await loki.getServers()).length;
-      assert.isNotNull(await loki.getBacklink(), 'check before');
+      expect(await loki.getBacklink()).not.toBeNull();
       
       await loki.removeBacklink();
-      assert.isNull(await loki.getBacklink(), 'check the backlink after');
-      assert.equal((await loki.getServers()).length, count, 'check .getServers()');
+      expect(await loki.getBacklink()).toBeNull();
+      expect((await loki.getServers()).length).toEqual(count);
     });
   });
 
-  describe('.removeMaster()', function () {
-    it('should remove the master', async function () {
+  describe('.removeMaster()', () => {
+    test('should remove the master', async () => {
       const address = 'localhost:1';
       await loki.removeMaster(address);
-      assert.isNull(await loki.getMaster(address));
+      expect(await loki.getMaster(address)).toBeNull();
     });
   });
 
-  describe('.removeMasters()', function () {
-    it('should remove all masters', async function () {
+  describe('.removeMasters()', () => {
+    test('should remove all masters', async () => {
       await loki.addMaster('localhost:1', 0);
       await loki.removeMasters();
-      assert.equal(await loki.getMastersCount(), 0, 'check .getMastersCount()');
-      assert.equal((await loki.getMasters()).length, 0, 'check .getMasters()');
-      assert.equal((await loki.getServers()).length, 1, 'check .getServers()');
+      expect(await loki.getMastersCount()).toEqual(0);
+      expect((await loki.getMasters()).length).toEqual(0);
+      expect((await loki.getServers()).length).toEqual(1);
     });
   });
 
-  describe('.failedServerAddress()', function () { 
+  describe('.failedServerAddress()', () => { 
     let address; 
     let isBroken;
 
-    before(function () {
+    beforeAll(() => {
       address = 'localhost:1';
     });
 
-    it('should increase the fails count', async function () {
+    test('should increase the fails count', async () => {
       const server = await loki.getServer(address);
       isBroken = server.isBroken;
-      assert.equal(server.fails, 0, 'check before');
+      expect(server.fails).toEqual(0);
 
-      for(let i = 0; i < this.node.options.network.serverMaxFails + 1; i++) {
+      for(let i = 0; i < testContext.node.options.network.serverMaxFails + 1; i++) {
         await loki.failedServerAddress(address);
-        assert.equal(server.fails, i + 1, 'check after');
+        expect(server.fails).toEqual(i + 1);
       }      
     });
 
-    it('should change the server status to "isBroken"', async function () {    
-      assert.isFalse(isBroken, 'check before');
+    test('should change the server status to "isBroken"', async () => {    
+      expect(isBroken).toBe(false);
       const server = await loki.getServer(address);
-      assert.isTrue(server.isBroken, 'check after');
+      expect(server.isBroken).toBe(true);
     });
   });
 
-  describe('.successServerAddress()', function () { 
+  describe('.successServerAddress()', () => { 
     let address; 
     let isBroken;
 
-    before(function () {
+    beforeAll(() => {
       address = 'localhost:1';
     });
 
-    it('should decrease the fails count', async function () {
+    test('should decrease the fails count', async () => {
       const server = await loki.getServer(address);
       isBroken = server.isBroken;
-      assert.isOk(server.fails > 0, 'check before');
+      expect(server.fails > 0).toBeTruthy();
       await loki.successServerAddress(address);      
-      assert.equal((await loki.getServer(address)).fails, 0, 'check after');   
+      expect((await loki.getServer(address)).fails).toEqual(0);   
     });
 
-    it('should remove "isBroken" status', async function () {    
-      assert.isTrue(isBroken, 'check before');
+    test('should remove "isBroken" status', async () => {    
+      expect(isBroken).toBe(true);
       const server = await loki.getServer(address);
-      assert.isFalse(server.isBroken, 'check after');
+      expect(server.isBroken).toBe(false);
     });
   });
 
-  describe('.normalizeServers()', function () {
+  describe('.normalizeServers()', () => {
     let address;
 
-    before(function () {
+    beforeAll(() => {
       address = 'localhost:1';
     });
     
-    it('should set "isBroken" to false', async function () {
+    test('should set "isBroken" to false', async () => {
       const server = await loki.getServer(address);
       server.isBroken = true;
-      assert.isOk(server.fails <= this.node.options.network.serverMaxFails, 'check fails');
+      expect(server.fails <= testContext.node.options.network.serverMaxFails).toBeTruthy();
       await loki.normalizeServers();
-      assert.isFalse((await loki.getServer(address)).isBroken, 'check the status');
+      expect((await loki.getServer(address)).isBroken).toBe(false);
     });
 
-    it('should set "isBroken" to true', async function () {
-      for(let i = 0; i < this.node.options.network.serverMaxFails + 1; i++) {
+    test('should set "isBroken" to true', async () => {
+      for(let i = 0; i < testContext.node.options.network.serverMaxFails + 1; i++) {
         await loki.failedServerAddress(address);
       } 
 
       await loki.normalizeServers();
-      assert.isTrue((await loki.getServer(address)).isBroken);
+      expect((await loki.getServer(address)).isBroken).toBe(true);
     });
 
-    it('should remove the slave with the current node address', async function () {
-      await loki.addSlave(this.node.address, 0);
-      assert.isObject(await loki.getServer(this.node.address), 'check before');
-      await loki.normalizeServers();
-      assert.isNull(await loki.getServer(this.node.address), 'check after');
-    });
+    test(
+      'should remove the slave with the current node address',
+      async () => {
+        await loki.addSlave(testContext.node.address, 0);
+        expect(typeof (await loki.getServer(testContext.node.address))).toBe('object');
+        await loki.normalizeServers();
+        expect(await loki.getServer(testContext.node.address)).toBeNull();
+      }
+    );
 
-    it('should remove the backlink with the current node address', async function () {
-      await loki.addBacklink(this.node.address);
-      assert.isObject(await loki.getServer(this.node.address), 'check before');
-      await loki.normalizeServers();
-      assert.isNull(await loki.getServer(this.node.address), 'check after');
-    });
+    test(
+      'should remove the backlink with the current node address',
+      async () => {
+        await loki.addBacklink(testContext.node.address);
+        expect(typeof (await loki.getServer(testContext.node.address))).toBe('object');
+        await loki.normalizeServers();
+        expect(await loki.getServer(testContext.node.address)).toBeNull();
+      }
+    );
 
-    it('should remove the server with wrong statuses', async function () {
+    test('should remove the server with wrong statuses', async () => {
       const address = 'localhost:1';
       const server = await loki.getServer(address);
-      assert.isObject(server, 'check before');
+      expect(typeof server).toBe('object');
       server.isMaster = false;
       server.isSlave = false;
       server.isBacklink = false;
       loki.col.servers.update(server);
       await loki.normalizeServers();
-      assert.isNull(await loki.getServer(address), 'check after');
+      expect(await loki.getServer(address)).toBeNull();
     });
   });
 
-  describe('.addBanlistAddress()', function () { 
-    it('should add the address', async function () {
+  describe('.addBanlistAddress()', () => { 
+    test('should add the address', async () => {
       const address = 'localhost:1';
       await loki.addBanlistAddress(address, '1d');
-      assert.isOk(loki.col.banlist.count({ address }));        
+      expect(loki.col.banlist.count({ address })).toBeTruthy();        
     });
 
-    it('should not create the same address', async function () {
+    test('should not create the same address', async () => {
       const address = 'localhost:1';
       await loki.addBanlistAddress(address, '1d');
-      assert.equal(loki.col.banlist.count({ address }), 1);        
+      expect(loki.col.banlist.count({ address })).toEqual(1);        
     });
   });
 
-  describe('.getBanlist()', function () { 
-    it('should return the list', async function () {
+  describe('.getBanlist()', () => { 
+    test('should return the list', async () => {
       const address = 'localhost:1';
       const list = await loki.getBanlist();
-      assert.lengthOf(list, 1, 'check the count');
-      assert.equal(list[0].address, address, 'check the address');
+      expect(list.length).toBe(1);
+      expect(list[0].address).toEqual(address);
     });
   });
 
-  describe('.getBanlistAddress()', function () { 
-    it('should return the address', async function () {
+  describe('.getBanlistAddress()', () => { 
+    test('should return the address', async () => {
       const address = 'localhost:1';
       const server = await loki.getBanlistAddress(address);
-      assert.equal(server.address, address);
+      expect(server.address).toEqual(address);
     });
 
-    it('should not return the wrong address', async function () {
-      assert.isNull(await loki.getBanlistAddress('wrong'));        
+    test('should not return the wrong address', async () => {
+      expect(await loki.getBanlistAddress('wrong')).toBeNull();        
     });
   });
 
-  describe('.checkBanlistIp()', function () { 
-    it('should return true', async function () {
+  describe('.checkBanlistIp()', () => { 
+    test('should return true', async () => {
       const address = 'localhost:1';
       const server = await loki.getBanlistAddress(address);
-      assert.isOk(await loki.checkBanlistIp(server.ip));
+      expect(await loki.checkBanlistIp(server.ip)).toBeTruthy();
     });
 
-    it('should return false', async function () {
-      assert.isFalse(await loki.checkBanlistIp('wrong'))      
+    test('should return false', async () => {
+      expect(await loki.checkBanlistIp('wrong')).toBe(false)      
     });    
   });
 
-  describe('.removeBanlistAddress()', function () { 
-    it('should remove the address', async function () {
+  describe('.removeBanlistAddress()', () => { 
+    test('should remove the address', async () => {
       const address = 'localhost:1';
       await loki.removeBanlistAddress(address);
-      assert.isNull(await loki.getBanlistAddress(address));
+      expect(await loki.getBanlistAddress(address)).toBeNull();
     });   
   });
 
-  describe('.normalizeBanlist()', function () { 
-    it('check the lifetime', async function () {
+  describe('.normalizeBanlist()', () => { 
+    test('check the lifetime', async () => {
       const address = 'localhost:1';
       await loki.addBanlistAddress(address, 1000 * 60);
       const count = loki.col.banlist.count();
       await loki.normalizeBanlist();
       const data = loki.col.banlist.find();
-      assert.equal(count, data.length, 'check before');
+      expect(count).toEqual(data.length);
       data[0].resolvedAt = Date.now() - 1;
       await loki.normalizeBanlist();
-      assert.equal(count - 1, loki.col.banlist.count(), 'check after');
+      expect(count - 1).toEqual(loki.col.banlist.count());
     }); 
   });
 
-  describe('.emptyBanlist()', function () { 
-    it('should empty the list', async function () {
+  describe('.emptyBanlist()', () => { 
+    test('should empty the list', async () => {
       for(let i = 1; i < 10; i++) {
         await loki.addBanlistAddress(`localhost:${i}`, '1d');
       }
 
       await loki.emptyBanlist();      
-      assert.lengthOf(await loki.getBanlist(), 0);
+      expect((await loki.getBanlist()).length).toBe(0);
     });
   });
 
-  describe('candidates behavior', function () { 
+  describe('candidates behavior', () => { 
     let action;
 
-    before(function () {
+    beforeAll(() => {
       action = 'test';
     });
  
-    describe('.addBehaviorCandidate()', function () { 
-      it('should add the behavior', async function () {
+    describe('.addBehaviorCandidate()', () => { 
+      test('should add the behavior', async () => {
         loki.col.servers.chain().find().remove();      
         const address = 'localhost:1';
         await loki.addMaster(address, 3);
         await loki.addBehaviorCandidate(action, address);
         const behavior = loki.col.behaviorCandidates.findOne({ address, action });
-        assert.equal(behavior.suspicion, 1, 'check the suspicion');
-        assert.equal(behavior.excuse, 0, 'check the excuse');
+        expect(behavior.suspicion).toEqual(1);
+        expect(behavior.excuse).toEqual(0);
         const wrongBehavior = loki.col.behaviorCandidates.findOne({ address, action: 'wrong' });
-        assert.isNull(wrongBehavior, 'check the wrong action');
+        expect(wrongBehavior).toBeNull();
       });
 
-      it('should add the second candidate behavior', async function () {  
+      test('should add the second candidate behavior', async () => {  
         const address = 'localhost:2';
         await loki.addBehaviorCandidate(action, address);
         const behavior = loki.col.behaviorCandidates.findOne({ address, action });
-        assert.equal(behavior.suspicion, 1, 'check the suspicion');
-        assert.equal(behavior.excuse, 0, 'check the excuse');
+        expect(behavior.suspicion).toEqual(1);
+        expect(behavior.excuse).toEqual(0);
       });
 
-      it('should change the first candidate excuse', async function () {
+      test('should change the first candidate excuse', async () => {
         const address = 'localhost:1';
         const behavior = loki.col.behaviorCandidates.findOne({ address, action });
-        assert.equal(behavior.excuse, await this.node.getCandidateExcuseStep());
+        expect(behavior.excuse).toEqual(await testContext.node.getCandidateExcuseStep());
       });
 
-      it('should add suspicion to the second candidate', async function () {
+      test('should add suspicion to the second candidate', async () => {
         const address = 'localhost:2';
         let behavior = loki.col.behaviorCandidates.findOne({ address, action });
         const lastSuspicion = behavior.suspicion;
@@ -499,153 +521,153 @@ describe('DatabaseLoki', () => {
         }
             
         behavior = loki.col.behaviorCandidates.findOne({ address, action });
-        assert.equal(behavior.suspicion, lastSuspicion + count, 'check the suspicion');
-        assert.equal(behavior.excuse, 0, 'check the excuse');
+        expect(behavior.suspicion).toEqual(lastSuspicion + count);
+        expect(behavior.excuse).toEqual(0);
       });
 
-      it('should add the third candidate behavior', async function () {
+      test('should add the third candidate behavior', async () => {
         const address = 'localhost:3';
         await loki.addBehaviorCandidate(action, address);      
         const behavior = loki.col.behaviorCandidates.findOne({ address, action });
-        assert.equal(behavior.suspicion, 1, 'check the suspicion');
-        assert.equal(behavior.excuse, 0, 'check the excuse');
+        expect(behavior.suspicion).toEqual(1);
+        expect(behavior.excuse).toEqual(0);
       });
 
-      it('should remove the first candidate behavior', async function () {
+      test('should remove the first candidate behavior', async () => {
         const address = 'localhost:1';
-        assert.isNull(loki.col.behaviorCandidates.findOne({ address, action }));
+        expect(loki.col.behaviorCandidates.findOne({ address, action })).toBeNull();
       });
 
-      it('should change the second candidate excuse', async function () {
+      test('should change the second candidate excuse', async () => {
         const address = 'localhost:2';
         const behavior = loki.col.behaviorCandidates.findOne({ address, action });
-        assert.equal(behavior.excuse, await this.node.getCandidateExcuseStep());
+        expect(behavior.excuse).toEqual(await testContext.node.getCandidateExcuseStep());
       });
     });
     
-    describe('.normalizeBehaviorCandidates()', function () {
-      it('should decrease the candidate suspicion', async function () {
+    describe('.normalizeBehaviorCandidates()', () => {
+      test('should decrease the candidate suspicion', async () => {
         const address = 'localhost:2';
         let behavior = loki.col.behaviorCandidates.findOne({ address, action });
-        const level = await this.node.getCandidateSuspicionLevel();
-        assert.isOk(behavior.suspicion > level, 'check before');
+        const level = await testContext.node.getCandidateSuspicionLevel();
+        expect(behavior.suspicion > level).toBeTruthy();
         await loki.normalizeBehaviorCandidates();
         behavior = loki.col.behaviorCandidates.findOne({ address, action });
-        assert.isOk(behavior.suspicion <= level, 'check after');       
+        expect(behavior.suspicion <= level).toBeTruthy();       
       });
 
-      it('should remove the candidate', async function () {
+      test('should remove the candidate', async () => {
         const address = 'localhost:2';
         const behavior = loki.col.behaviorCandidates.findOne({ address, action });
         behavior.excuse = behavior.suspicion + 1;
         loki.col.behaviorCandidates.update(behavior);
         await loki.normalizeBehaviorCandidates();
-        assert.isNull(loki.col.behaviorCandidates.findOne({ address, action }));
+        expect(loki.col.behaviorCandidates.findOne({ address, action })).toBeNull();
       });      
     });
 
-    describe('.getBehaviorCandidates()', function () {
-      it('should not get any candidates', async function () {
+    describe('.getBehaviorCandidates()', () => {
+      test('should not get any candidates', async () => {
         const address = 'localhost:3';
-        const level = await this.node.getCandidateSuspicionLevel();        
+        const level = await testContext.node.getCandidateSuspicionLevel();        
         const behavior = loki.col.behaviorCandidates.findOne({ address, action });
-        assert.isOk(behavior.suspicion < level, 'check before');
+        expect(behavior.suspicion < level).toBeTruthy();
         const candidates = await loki.getBehaviorCandidates(action);
-        assert.equal(candidates.length, 0, 'check after');     
+        expect(candidates.length).toEqual(0);     
       });
 
-      it('should get an array with the third candidate', async function () {
+      test('should get an array with the third candidate', async () => {
         const address = 'localhost:3';
-        const level = await this.node.getCandidateSuspicionLevel();       
+        const level = await testContext.node.getCandidateSuspicionLevel();       
         const behavior = loki.col.behaviorCandidates.findOne({ address, action });
         behavior.suspicion = level;
         loki.col.behaviorCandidates.update(behavior);
         const candidates = await loki.getBehaviorCandidates(action);
-        assert.equal(candidates.length, 1, 'check the length');
-        assert.equal(candidates[0].address, address, 'check the address');
+        expect(candidates.length).toEqual(1);
+        expect(candidates[0].address).toEqual(address);
         const wrongCandidates = await loki.getBehaviorCandidates('wrong');
-        assert.equal(wrongCandidates.length, 0, 'check the wrong action');
+        expect(wrongCandidates.length).toEqual(0);
       });
     });    
   });
 
-  describe('delays behavior', function () { 
+  describe('delays behavior', () => { 
     let action;
 
-    before(function () {
+    beforeAll(() => {
       action = 'test';
     });
  
-    describe('.addBehaviorDelay()', function () { 
-      it('should add the behavior', async function () {
+    describe('.addBehaviorDelay()', () => { 
+      test('should add the behavior', async () => {
         const address = 'localhost:1';
         await loki.addBehaviorDelay(action, address);
         const behavior = loki.col.behaviorDelays.findOne({ action, address });
-        assert.equal(behavior.address, address);        
+        expect(behavior.address).toEqual(address);        
       });
 
-      it('should not create the same behavior', async function () {
+      test('should not create the same behavior', async () => {
         const address = 'localhost:1';
         await loki.addBehaviorDelay(action, address);
         const data = loki.col.behaviorDelays.find({ action, address });
-        assert.equal(data.length, 1);        
+        expect(data.length).toEqual(1);        
       });
     });
     
-    describe('.getBehaviorDelay()', function () { 
-      it('should get the behavior', async function () {
+    describe('.getBehaviorDelay()', () => { 
+      test('should get the behavior', async () => {
         const address = 'localhost:1';
         const behavior = await loki.getBehaviorDelay(action, address);
-        assert.equal(behavior.address, address, 'check the behavior');
+        expect(behavior.address).toEqual(address);
         const wrongBehavior = loki.col.behaviorDelays.findOne({ address, action: 'wrong' });
-        assert.isNull(wrongBehavior, 'check the wrong action');
+        expect(wrongBehavior).toBeNull();
       });
 
-      it('should not get the wrong behavior', async function () {
-        assert.isNull(await loki.getBehaviorDelay(action, 'wrong'));
+      test('should not get the wrong behavior', async () => {
+        expect(await loki.getBehaviorDelay(action, 'wrong')).toBeNull();
       });
     });
 
-    describe('.removeBehaviorDelay()', function () { 
-      it('should remove behavior', async function () {
+    describe('.removeBehaviorDelay()', () => { 
+      test('should remove behavior', async () => {
         const address = 'localhost:1';
         await loki.addBehaviorDelay(action, 'localhost:2');
         await loki.removeBehaviorDelay(action, address);
         let behavior = loki.col.behaviorDelays.findOne({ address, action });
-        assert.isNull(behavior, 'check the removed behavior');
+        expect(behavior).toBeNull();
         behavior = loki.col.behaviorDelays.findOne({ action });
-        assert.isNotNull(behavior, 'check the others');
+        expect(behavior).not.toBeNull();
       });
     });
 
-    describe('.cleanBehaviorDelays()', function () { 
-      it('should remove all action behavior', async function () {
+    describe('.cleanBehaviorDelays()', () => { 
+      test('should remove all action behavior', async () => {
         const address = 'localhost:1';
         await loki.addBehaviorDelay(action, address);
         await loki.addBehaviorDelay('anotherAction', address);
         let data = loki.col.behaviorDelays.find({ action });
-        assert.equal(data.length, 2, 'check before');
+        expect(data.length).toEqual(2);
         await loki.cleanBehaviorDelays(action);
         data = loki.col.behaviorDelays.find({ action });
-        assert.equal(data.length, 0, 'check the current action');
+        expect(data.length).toEqual(0);
         data = loki.col.behaviorDelays.find();
-        assert.equal(data.length, 1, 'check new action');
+        expect(data.length).toEqual(1);
       });
     });
   });
 
-  describe('approval', function () { 
+  describe('approval', () => { 
     let action;
     let key;
 
-    before(function () {
+    beforeAll(() => {
       action = 'test';
       key = 'key'
     });
 
-    describe('.addApproval()', function () {
-      it('should add the approval', async function () {
-        await this.node.addApproval(action, new Approval());
+    describe('.addApproval()', () => {
+      test('should add the approval', async () => {
+        await testContext.node.addApproval(action, new Approval());
         const ip = '127.0.0.1';
         const clientIp = utils.isIpv6(ip)? utils.getFullIpv6(ip): utils.ipv4Tov6(ip);
         const startedAt = Date.now();
@@ -655,7 +677,7 @@ describe('DatabaseLoki', () => {
         assert.containsAllKeys(approval, ['usedBy', 'updatedAt']);       
       });
 
-      it('should replace the approval', async function () {
+      test('should replace the approval', async () => {
         const ip = '127.0.0.1';
         const clientIp = utils.isIpv6(ip)? utils.getFullIpv6(ip): utils.ipv4Tov6(ip);
         key = 'newKey';
@@ -663,251 +685,254 @@ describe('DatabaseLoki', () => {
         const info = 2;
         await loki.addApproval(action, ip, key, startedAt, info);
         const approval = loki.col.approval.findOne({ action, clientIp, key, startedAt, info });
-        assert.isNotNull(approval, 'check the new one');
-        assert.lengthOf(loki.col.approval.find(), 1, 'check the count');
+        expect(approval).not.toBeNull();
+        expect(loki.col.approval.find().length).toBe(1);
       });
     });
 
-    describe('.getApproval()', function () { 
-      it('should get the approval', async function () {
+    describe('.getApproval()', () => { 
+      test('should get the approval', async () => {
         const approval = await loki.getApproval(key);
-        assert.isNotNull(approval);
+        expect(approval).not.toBeNull();
       });
 
-      it('should not get the wrong approval', async function () {
-        assert.isNull(await loki.getApproval('wrong key'));
+      test('should not get the wrong approval', async () => {
+        expect(await loki.getApproval('wrong key')).toBeNull();
       });
     });
 
-    describe('.startApproval()', function () { 
-      it('should start the approval', async function () {
+    describe('.startApproval()', () => { 
+      test('should start the approval', async () => {
         const answer = 1;
         await loki.startApproval(key, answer);
         const approval = await loki.getApproval(key);
-        assert.equal(approval.answer, answer);
+        expect(approval.answer).toEqual(answer);
       });
     });
 
-    describe('.useApproval()', function () { 
-      it('should use the approval', async function () {
+    describe('.useApproval()', () => { 
+      test('should use the approval', async () => {
         const address = 'localhost:1'
         let approval = await loki.getApproval(key);
         const date = approval.updatedAt;
         await tools.wait(10);
         await loki.useApproval(key, address);
         approval = await loki.getApproval(key);
-        assert.equal(approval.usedBy[0], address, 'check the user');
-        assert.isOk(approval.updatedAt > date, 'check the date');
+        expect(approval.usedBy[0]).toEqual(address);
+        expect(approval.updatedAt > date).toBeTruthy();
       });
 
-      it('should add the new user', async function () {
+      test('should add the new user', async () => {
         const address = 'localhost:2';
         await loki.useApproval(key, address);
         const approval = await loki.getApproval(key);
-        assert.equal(approval.usedBy[1], address);
+        expect(approval.usedBy[1]).toEqual(address);
       });
 
-      it('should not add the same user', async function () {
+      test('should not add the same user', async () => {
         const address = 'localhost:2';
         await loki.useApproval(key, address);
         const approval = await loki.getApproval(key);
-        assert.lengthOf(approval.usedBy, 2);
+        expect(approval.usedBy.length).toBe(2);
       });
     });
 
-    describe('.normalizeApproval()', function () { 
-      it('check the lifetime', async function () {
+    describe('.normalizeApproval()', () => { 
+      test('check the lifetime', async () => {
         const count = loki.col.approval.count({ action });
         await loki.normalizeApproval();
         const data = loki.col.approval.find({ action });
-        assert.equal(count, data.length, 'check before');
-        const approval = await this.node.getApproval(action);
+        expect(count).toEqual(data.length);
+        const approval = await testContext.node.getApproval(action);
         data[0].updatedAt = Date.now() - approval.period - 1;
         await loki.normalizeApproval();
-        assert.equal(count - 1, loki.col.approval.count({ action }), 'check after');
+        expect(count - 1).toEqual(loki.col.approval.count({ action }));
       });
     });
   });
 
-  describe('fails behavior', function () { 
+  describe('fails behavior', () => { 
     let action;
 
-    before(function () {
+    beforeAll(() => {
       action = 'test';
     });
  
-    describe('.addBehaviorFail()', function () { 
-      it('should throw an error', async function () {
+    describe('.addBehaviorFail()', () => { 
+      test('should throw an error', async () => {
         const address = 'localhost:1';
         try {
           await loki.addBehaviorFail(action, address);  
           throw new Error('Fail');
         }
         catch(err) {
-          assert.isOk(err.message.includes("doesn't exist"));
+          expect(err.message.includes("doesn't exist")).toBeTruthy();
         }         
       });
 
-      it('should add the behavior', async function () {
-        await this.node.addBehavior(action, new BehaviorFail());
+      test('should add the behavior', async () => {
+        await testContext.node.addBehavior(action, new BehaviorFail());
         const address = 'localhost:1';
         await loki.addBehaviorFail(action, address);
         const behavior = loki.col.behaviorFails.findOne({ action, address });
-        assert.isNotNull(behavior);       
+        expect(behavior).not.toBeNull();       
       });
 
-      it('should have the expected suspicion and balance', async function () {
+      test('should have the expected suspicion and balance', async () => {
         const address = 'localhost:2';
         const count = 5;
 
         for(let i = 0, b = 1; i < count; i += 2, b++) {
           await loki.addBehaviorFail(action, address, 2);
           const behavior = loki.col.behaviorFails.findOne({ action, address });
-          assert.equal(behavior.suspicion, i + 2, 'check the suspicion'); 
-          assert.equal(behavior.balance, b, 'check the balance');
+          expect(behavior.suspicion).toEqual(i + 2); 
+          expect(behavior.balance).toEqual(b);
         }
       });
 
-      it('should handle the step as a function', async function () {
+      test('should handle the step as a function', async () => {
         const address = 'localhost:1';  
         let behavior = loki.col.behaviorFails.findOne({ action, address });
         const suspicion = behavior.suspicion;
         const balance = behavior.balance;
         await loki.addBehaviorFail(action, address, b => b.balance * 2);
         behavior = loki.col.behaviorFails.findOne({ action, address });
-        assert.equal(behavior.suspicion, suspicion + balance * 2, 'check the suspicion'); 
-        assert.equal(behavior.balance, balance + 1, 'check the balance');
+        expect(behavior.suspicion).toEqual(suspicion + balance * 2); 
+        expect(behavior.balance).toEqual(balance + 1);
       });
 
-      it('should handle up and down fields', async function () {
+      test('should handle up and down fields', async () => {
         const address = 'localhost:3';  
 
         for(let i = 0; i < 3; i++) {
           const behavior = await loki.addBehaviorFail(action, address);
-          assert.equal(behavior.up, i + 1, 'check addition');
-          assert.equal(behavior.down, 0, 'check reset for down');
+          expect(behavior.up).toEqual(i + 1);
+          expect(behavior.down).toEqual(0);
         }
 
         for(let i = 0; i < 3; i++) {
           const behavior = await loki.subBehaviorFail(action, address);
-          assert.equal(behavior.down, i + 1, 'check subtraction');
-          assert.equal(behavior.up, 0, 'check reset for up');
+          expect(behavior.down).toEqual(i + 1);
+          expect(behavior.up).toEqual(0);
         }
       });
     });
 
-    describe('.getBehaviorFail()', function () { 
-      it('should get the behavior', async function () {
+    describe('.getBehaviorFail()', () => { 
+      test('should get the behavior', async () => {
         const address = 'localhost:1';
         const behavior = await loki.getBehaviorFail(action, address);
-        assert.equal(behavior.address, address, 'check the behavior');
+        expect(behavior.address).toEqual(address);
         const wrongBehavior = loki.col.behaviorFails.findOne({ address, action: 'wrong' });
-        assert.isNull(wrongBehavior, 'check the wrong action');
+        expect(wrongBehavior).toBeNull();
       });
 
-      it('should not get the wrong behavior', async function () {
-        assert.isNull(await loki.getBehaviorFail(action, 'wrong'));
+      test('should not get the wrong behavior', async () => {
+        expect(await loki.getBehaviorFail(action, 'wrong')).toBeNull();
       });
     });
     
-    describe('.subBehaviorFail()', function () { 
-      it('should subtract the behavior', async function () {
+    describe('.subBehaviorFail()', () => { 
+      test('should subtract the behavior', async () => {
         const address = 'localhost:1';
         let behavior = await loki.getBehaviorFail(action, address);   
         behavior.suspicion = 4;
         loki.col.behaviorFails.update(behavior);
         await loki.subBehaviorFail(action, address);             
         behavior = await loki.getBehaviorFail(action, address);
-        assert.equal(behavior.suspicion, 3);
+        expect(behavior.suspicion).toEqual(3);
       });
 
-      it('should handle the step as a function', async function () {
+      test('should handle the step as a function', async () => {
         const address = 'localhost:1';
         await loki.subBehaviorFail(action, address, () => 1);
         const behavior = await loki.getBehaviorFail(action, address)
-        assert.equal(behavior.suspicion, 2);        
+        expect(behavior.suspicion).toEqual(2);        
       });
 
-      it('should subtract the behavior with the custom step and remove', async function () {
-        const address = 'localhost:1';
-        await loki.subBehaviorFail(action, address, 2);
-        assert.isNull(await loki.getBehaviorFail(action, address));
-      });
+      test(
+        'should subtract the behavior with the custom step and remove',
+        async () => {
+          const address = 'localhost:1';
+          await loki.subBehaviorFail(action, address, 2);
+          expect(await loki.getBehaviorFail(action, address)).toBeNull();
+        }
+      );
     });
 
-    describe('.cleanBehaviorFail()', function () { 
-      it('should remove the behavior', async function () {
+    describe('.cleanBehaviorFail()', () => { 
+      test('should remove the behavior', async () => {
         const address = 'localhost:1';
         await loki.addBehaviorFail(action, address, 10); 
         await loki.cleanBehaviorFail(action, address); 
-        assert.isNull(await loki.getBehaviorFail(action, address));
+        expect(await loki.getBehaviorFail(action, address)).toBeNull();
       });
     });
 
-    describe('.normalizeBehaviorFails()', function () { 
-      it('check the lifetime', async function () {
+    describe('.normalizeBehaviorFails()', () => { 
+      test('check the lifetime', async () => {
         const count = loki.col.behaviorFails.count({ action });
         await loki.normalizeBehaviorFails();
         const data = loki.col.behaviorFails.find({ action });
-        assert.equal(count, data.length, 'check before');
+        expect(count).toEqual(data.length);
         data[0].updatedAt = 0;
         loki.col.behaviorFails.update(data[0]);
         await loki.normalizeBehaviorFails();
-        assert.equal(count - 1, loki.col.behaviorFails.count({ action }), 'check after');
+        expect(count - 1).toEqual(loki.col.behaviorFails.count({ action }));
       });
 
-      it('check the banlist delay', async function () {
+      test('check the banlist delay', async () => {
         loki.col.banlist.chain().find().remove();
         const address = 'localhost:1';
         const behavior = await loki.addBehaviorFail(action, address);
         await loki.normalizeBehaviorFails();
-        assert.equal(loki.col.banlist.count(), 0, 'check the banlist before');
+        expect(loki.col.banlist.count()).toEqual(0);
         const options = await loki.node.getBehavior(action);
         options.banDelay = 1000;
         behavior.suspicion = options.failSuspicionLevel + 1;
         loki.col.behaviorFails.update(behavior);
         await tools.wait(10);
         await loki.normalizeBehaviorFails();
-        assert.equal(loki.col.banlist.count(), 0, 'check the banlist after'); 
-        assert.isNotNull(await loki.getBehaviorFail(action, address), 'check the fail');        
+        expect(loki.col.banlist.count()).toEqual(0); 
+        expect(await loki.getBehaviorFail(action, address)).not.toBeNull();        
       });
 
-      it('check the banlist', async function () {
+      test('check the banlist', async () => {
         loki.col.banlist.chain().find().remove();
         const address = 'localhost:1';
         const behavior = await loki.addBehaviorFail(action, address);
         behavior.createdAt = 0;
         loki.col.behaviorFails.update(behavior);
         await loki.normalizeBehaviorFails();
-        assert.equal(loki.col.banlist.count(), 1, 'check the banlist');
-        assert.isNull(await loki.getBehaviorFail(action, address), 'check the fail');       
+        expect(loki.col.banlist.count()).toEqual(1);
+        expect(await loki.getBehaviorFail(action, address)).toBeNull();       
       });
     });
   });
 
-  describe('cache', function () { 
+  describe('cache', () => { 
     let type;
 
-    before(function () {
+    beforeAll(() => {
       type = 'test';
     });
  
-    describe('.setCache()', function () { 
-      it('should set the cache', async function () {
+    describe('.setCache()', () => { 
+      test('should set the cache', async () => {
         const key = 'key1';
         await loki.setCache(type, key, 1);
-        assert.isOk(loki.col.cache.count({ type, key }));     
+        expect(loki.col.cache.count({ type, key })).toBeTruthy();     
       });
 
-      it('should update the same cache', async function () {
+      test('should update the same cache', async () => {
         const key = 'key1';
         await loki.setCache(type, key, 2);
         const data = loki.col.cache.find({ type, key });
-        assert.equal(data.length, 1, 'check the length'); 
-        assert.equal(data[0].value, 2, 'check the value');   
+        expect(data.length).toEqual(1); 
+        expect(data[0].value).toEqual(2);   
       });
 
-      it('should keep the limit', async function () {
+      test('should keep the limit', async () => {
         const limit = 5;
         const key = 'key1';
 
@@ -917,58 +942,58 @@ describe('DatabaseLoki', () => {
         }
 
         const data = loki.col.cache.find({ type });
-        assert.equal(data.length, limit, 'check the length');
-        assert.notEqual(data[0].key, key, 'check the first');
+        expect(data.length).toEqual(limit);
+        expect(data[0].key).not.toEqual(key);
       });
     });
 
-    describe('.getCache()', function () { 
+    describe('.getCache()', () => { 
       let accessTime;
 
-      it('should get the cache', async function () {
+      test('should get the cache', async () => {
         await loki.setCache(type, 'key1', 1);
         const cache = await loki.getCache(type, 'key1');
         accessTime = cache.accessedAt;
-        assert.isObject(cache);     
+        expect(typeof cache).toBe('object');     
       });
 
-      it('should update the access time', async function () {
+      test('should update the access time', async () => {
         await tools.wait(1);
         const cache = await loki.getCache(type, 'key1');
-        assert.isOk(cache.accessedAt > accessTime);
+        expect(cache.accessedAt > accessTime).toBeTruthy();
       });
 
-      it('should not get the wrong type cache', async function () {     
-        assert.isNull(await loki.getCache('wrong', 'key1'));     
+      test('should not get the wrong type cache', async () => {     
+        expect(await loki.getCache('wrong', 'key1')).toBeNull();     
       });
 
-      it('should not get the wrong key cache', async function () {
-        assert.isNull(await loki.getCache(type, 'wrong'));     
+      test('should not get the wrong key cache', async () => {
+        expect(await loki.getCache(type, 'wrong')).toBeNull();     
       });
     });
 
-    describe('.removeCache()', function () { 
-      it('should not remove the wrong type cache', async function () {
+    describe('.removeCache()', () => { 
+      test('should not remove the wrong type cache', async () => {
         const key = 'key1';
         await loki.removeCache('wrong', key);
-        assert.isOk(loki.col.cache.count({ type, key }));
+        expect(loki.col.cache.count({ type, key })).toBeTruthy();
       });
 
-      it('should not remove the wrong key cache', async function () {
+      test('should not remove the wrong key cache', async () => {
         const key = 'key1';
         await loki.removeCache(type, 'wrong');
-        assert.isOk(loki.col.cache.count({ type, key }));
+        expect(loki.col.cache.count({ type, key })).toBeTruthy();
       });
 
-      it('should remove the cache', async function () {
+      test('should remove the cache', async () => {
         const key = 'key1';
         await loki.removeCache(type, key);
-        assert.isNotOk(loki.col.cache.count({ type, key }));
+        expect(loki.col.cache.count({ type, key })).toBeFalsy();
       });
     });
 
-    describe('.normalizeCache()', function () { 
-      it('should keep the right limit', async function () {
+    describe('.normalizeCache()', () => { 
+      test('should keep the right limit', async () => {
         const limit = 5;
         const key = 'key1';
 
@@ -979,89 +1004,89 @@ describe('DatabaseLoki', () => {
 
         await loki.normalizeCache(type, { limit });
         const data = loki.col.cache.find({ type });
-        assert.equal(data.length, limit, 'check the length');
-        assert.notEqual(data[0].key, key, 'check the first');
+        expect(data.length).toEqual(limit);
+        expect(data[0].key).not.toEqual(key);
       });
 
-      it('should remove old cache', async function () {
+      test('should remove old cache', async () => {
         const count = loki.col.cache.chain().find({ type }).count();
         await tools.wait(10);
         await loki.setCache(type, count + 1, count + 1);
         await loki.normalizeCache(type, { lifetime: 9 });        
-        assert.equal(1, loki.col.cache.chain().find({ type }).count());
+        expect(1).toEqual(loki.col.cache.chain().find({ type }).count());
       });
     });
 
-    describe('.flushCache()', function () { 
-      it('should remove all cache', async function () {
+    describe('.flushCache()', () => { 
+      test('should remove all cache', async () => {
         for(let i = 1; i < 5; i++) {
           await loki.setCache(type, i);
         }
         
         await loki.flushCache(type); 
-        assert.equal(loki.col.cache.count({ type }), 0);
+        expect(loki.col.cache.count({ type })).toEqual(0);
       });
     });
   });
 
-  describe('.backup()', function () { 
-    it('should create a backup', async function () {      
+  describe('.backup()', () => { 
+    test('should create a backup', async () => {      
       await loki.backup();
       const files = await fse.readdir(loki.options.backups.folder);
       const backupBuffer = await fse.readFile(path.join(loki.options.backups.folder, files[0]));
       const dbBuffer = await fse.readFile(loki.options.filename);
-      assert.isTrue(backupBuffer.equals(dbBuffer));
+      expect(backupBuffer.equals(dbBuffer)).toBe(true);
     });
 
-    it('should create the secong backup', async function () {      
+    test('should create the secong backup', async () => {      
       await loki.backup();
       const files = await fse.readdir(loki.options.backups.folder);
       const backupBuffer = await fse.readFile(path.join(loki.options.backups.folder, files[1]));
       const dbBuffer = await fse.readFile(loki.options.filename);
-      assert.isTrue(backupBuffer.equals(dbBuffer));
+      expect(backupBuffer.equals(dbBuffer)).toBe(true);
     });
-  }); 
+  });
 
-  describe('.restore()', function () { 
-    it('should restore from the last backup', async function () {   
+  describe('.restore()', () => { 
+    test('should restore from the last backup', async () => {   
       await loki.setData('restore', 1);
       await loki.restore();
       const files = await fse.readdir(loki.options.backups.folder);
       const backupBuffer = await fse.readFile(path.join(loki.options.backups.folder, files[1]));
       const dbBuffer = await fse.readFile(loki.options.filename);
-      assert.isTrue(backupBuffer.equals(dbBuffer));
+      expect(backupBuffer.equals(dbBuffer)).toBe(true);
     });
 
-    it('should restore from the first backup', async function () {   
+    test('should restore from the first backup', async () => {   
       await loki.setData('restore', 2);
       await loki.restore(1);
       const files = await fse.readdir(loki.options.backups.folder);
       const backupBuffer = await fse.readFile(path.join(loki.options.backups.folder, files[0]));
       const dbBuffer = await fse.readFile(loki.options.filename);
-      assert.isTrue(backupBuffer.equals(dbBuffer));
+      expect(backupBuffer.equals(dbBuffer)).toBe(true);
     });
-  }); 
+  });
 
-  describe('.deinit()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.deinit()', () => { 
+    test('should not throw an exception', async () => {
       await loki.deinit();
     });
-  }); 
+  });
 
   describe('reinitialization', () => {
-    it('should not throw an exception', async function () {
+    test('should not throw an exception', async () => {
       await loki.init();
     });
   });
-  
-  describe('.destroy()', function () { 
-    it('should not throw an exception', async function () {
+
+  describe('.destroy()', () => { 
+    test('should not throw an exception', async () => {
       await loki.destroy();
-      this.node.db = lastNodeDb;
+      testContext.node.db = lastNodeDb;
     });
     
-    it('should remove the db file', async function () {
-      assert.isFalse(await fse.pathExists(tools.getDbFilePath(this.node)));
+    test('should remove the db file', async () => {
+      expect(await fse.pathExists(tools.getDbFilePath(testContext.node))).toBe(false);
     });
   });
 });

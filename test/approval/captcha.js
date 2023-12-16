@@ -1,40 +1,48 @@
-const assert = require('chai').assert;
-const sharp = require('sharp');
-const isPng = require('is-png');
-const ApprovalCaptcha = require('../../src/approval/transports/captcha')();
-const utils = require('../../src/utils');
+import { beforeAll, expect, test, describe } from "bun:test";
+
+import sharp from 'sharp';
+import isPng from 'is-png';
+import ApprovalCaptchaFactory from '../../src/approval/transports/captcha';
+const ApprovalCaptcha = ApprovalCaptchaFactory();
+import utils from '../../src/utils';
 
 describe('Approval', () => {
+  let testContext;
+
+  beforeAll(() => {
+    testContext = {};
+  });
+
   let approval;
-  
-  describe('instance creation', function () {
-    it('should create an instance', function () {
-      assert.doesNotThrow(() => approval = new ApprovalCaptcha());
-      approval.node = this.node;
+
+  describe('instance creation', () => {
+    test('should create an instance', () => {
+      expect(() => approval = new ApprovalCaptcha()).not.toThrow();
+      approval.node = testContext.node;
     });
 
-    it('should create the default properties', function () {
+    test('should create the default properties', () => {
       assert.containsAllKeys(approval, [
         'captchaLength', 'captchaWidth', 'captchaBackground', 'captchaColor'
       ]);
     });
   });
 
-  describe('.init()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.init()', () => { 
+    test('should not throw an exception', async () => {
       await approval.init();
     });  
   });
 
-  describe('.createText()', function () { 
-    it('should return a random text', function () {
+  describe('.createText()', () => { 
+    test('should return a random text', () => {
       const text = approval.createText();
-      assert.isOk(typeof text == 'string' && text.length == approval.captchaLength);
+      expect(typeof text == 'string' && text.length == approval.captchaLength).toBeTruthy();
     });  
-  }); 
+  });
 
-  describe('.createImage()', function () { 
-    it('should return the right image', async function () {
+  describe('.createImage()', () => { 
+    test('should return the right image', async () => {
       const options = { 
         captchaWidth: 200, 
         captchaBackground: 'transparent', 
@@ -43,21 +51,21 @@ describe('Approval', () => {
       const text = approval.createText();
       const img = await approval.createImage(text, options);
       const metadata = await img.metadata();
-      assert.equal(metadata.width, options.captchaWidth);
+      expect(metadata.width).toEqual(options.captchaWidth);
     });  
   });
 
-  describe('.createInfo()', function () {
-    it('should return the right info', async function () {
+  describe('.createInfo()', () => {
+    test('should return the right info', async () => {
       const result = await approval.createInfo({ info: {} });
       const text = result.answer;
-      assert.doesNotThrow(() => isPng(Buffer.from(result.info, 'base64')), 'check the info');
-      assert.isOk(typeof text == 'string' && text.length == approval.captchaLength, 'check the answer');
+      expect(() => isPng(Buffer.from(result.info, 'base64'))).not.toThrow();
+      expect(typeof text == 'string' && text.length == approval.captchaLength).toBeTruthy();
     });  
-  }); 
-  
-  describe('.createQuestion()', function () {
-    it('should return the right question', async function () {
+  });
+
+  describe('.createQuestion()', () => {
+    test('should return the right question', async () => {
       const data = [];
 
       for(let i = 0; i < 3; i++) {
@@ -67,63 +75,63 @@ describe('Approval', () => {
 
       const result = await approval.createQuestion(data, {});
       const buffer = Buffer.from(result.split(',')[1], 'base64');
-      assert.isTrue(isPng(buffer));
+      expect(isPng(buffer)).toBe(true);
     });  
-  }); 
+  });
 
-  describe('.checkAnswer()', function () {
-    it('should return false', async function () {
+  describe('.checkAnswer()', () => {
+    test('should return false', async () => {
       const approvers = ['localhost:1', 'localhost:2', approval.node.address];
       const result = await approval.checkAnswer({ answer: '34' }, '123456', approvers);
-      assert.isFalse(result);
+      expect(result).toBe(false);
     });  
 
-    it('should return true', async function () {
+    test('should return true', async () => {
       const approvers = ['localhost:1', approval.node.address, 'localhost:2'];
       const result = await approval.checkAnswer({ answer: '34' }, '123456', approvers);
-      assert.isTrue(result);
+      expect(result).toBe(true);
     });  
   });
 
-  describe('.getClientInfoSchema()', function () {
-    it('should throw an error', function () {
+  describe('.getClientInfoSchema()', () => {
+    test('should throw an error', () => {
       const schema = approval.getClientInfoSchema();
-      assert.throws(() => utils.validateSchema(schema, { captchaLength: 1 }), '', 'check the unexpected value');
-      assert.throws(() => utils.validateSchema(schema, { captchaWidth: 90 }), '', 'check "captchaWidth" min');
-      assert.throws(() => utils.validateSchema(schema, { captchaWidth: 1000 }), '', 'check "captchaWidth" max');
-      assert.throws(() => utils.validateSchema(schema, { captchaBackground: 'wrong' }), '', 'check "captchaBackground"');
-      assert.throws(() => utils.validateSchema(schema, { captchaColor: 'wrong' }), '', 'check "captchaColor"');
+      expect(() => utils.validateSchema(schema, { captchaLength: 1 })).toThrow();
+      expect(() => utils.validateSchema(schema, { captchaWidth: 90 })).toThrow();
+      expect(() => utils.validateSchema(schema, { captchaWidth: 1000 })).toThrow();
+      expect(() => utils.validateSchema(schema, { captchaBackground: 'wrong' })).toThrow();
+      expect(() => utils.validateSchema(schema, { captchaColor: 'wrong' })).toThrow();
     });  
 
-    it('should not throw an error', function () {
+    test('should not throw an error', () => {
       const schema = approval.getClientInfoSchema();
-      assert.doesNotThrow(() => utils.validateSchema(schema, { captchaWidth: 200 }), 'check "captchaWidth"');
-      assert.doesNotThrow(() => utils.validateSchema(schema, { captchaBackground: 'transparent' }), 'check "captchaBackground" transparent');
-      assert.doesNotThrow(() => utils.validateSchema(schema, { captchaBackground: '#000000' }), 'check "captchaBackground" color');
-      assert.doesNotThrow(() => utils.validateSchema(schema, { captchaColor: 'random' }), 'check "captchaColor" random');
-      assert.doesNotThrow(() => utils.validateSchema(schema, { captchaColor: '#000000' }), 'check "captchaColor" color');
+      expect(() => utils.validateSchema(schema, { captchaWidth: 200 })).not.toThrow();
+      expect(() => utils.validateSchema(schema, { captchaBackground: 'transparent' })).not.toThrow();
+      expect(() => utils.validateSchema(schema, { captchaBackground: '#000000' })).not.toThrow();
+      expect(() => utils.validateSchema(schema, { captchaColor: 'random' })).not.toThrow();
+      expect(() => utils.validateSchema(schema, { captchaColor: '#000000' })).not.toThrow();
     }); 
   });
 
-  describe('.getClientAnswerSchema()', function () {
-    it('should throw an error', function () {
+  describe('.getClientAnswerSchema()', () => {
+    test('should throw an error', () => {
       const schema = approval.getClientAnswerSchema();
-      assert.throws(() => utils.validateSchema(schema, 1));
+      expect(() => utils.validateSchema(schema, 1)).toThrow();
     });  
 
-    it('should not throw an error', function () {
+    test('should not throw an error', () => {
       const schema = approval.getClientAnswerSchema();
-      assert.doesNotThrow(() => utils.validateSchema(schema, 'right'));
+      expect(() => utils.validateSchema(schema, 'right')).not.toThrow();
     }); 
   });
 
-  describe('.getApproverInfoSchema()', function () {
-    it('should throw an error', async function () {
+  describe('.getApproverInfoSchema()', () => {
+    test('should throw an error', async () => {
       const schema = approval.getApproverInfoSchema();
-      assert.throws(() => utils.validateSchema(schema, 'wrong'));
+      expect(() => utils.validateSchema(schema, 'wrong')).toThrow();
     });  
 
-    it('should not throw an error', async function () {
+    test('should not throw an error', async () => {
       const schema = approval.getApproverInfoSchema();
       const img = sharp({ 
         create: {
@@ -135,24 +143,24 @@ describe('Approval', () => {
       });
       img.png();
       const buffer = await img.toBuffer();
-      assert.doesNotThrow(() => utils.validateSchema(schema, buffer.toString('base64')));
+      expect(() => utils.validateSchema(schema, buffer.toString('base64'))).not.toThrow();
     }); 
   });
 
-  describe('.deinit()', function () {
-    it('should not throw an exception', async function () {
+  describe('.deinit()', () => {
+    test('should not throw an exception', async () => {
       await approval.deinit();
     });
-  });  
+  });
 
   describe('reinitialization', () => {
-    it('should not throw an exception', async function () {
+    test('should not throw an exception', async () => {
       await approval.init();
     });
   });
-  
-  describe('.destroy()', function () { 
-    it('should not throw an exception', async function () {
+
+  describe('.destroy()', () => { 
+    test('should not throw an exception', async () => {
       await approval.destroy();
     });
   });

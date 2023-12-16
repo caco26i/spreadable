@@ -1,13 +1,21 @@
-const assert = require('chai').assert;
-const LoggerConsole = require('../../src/logger/transports/console')();
+import { afterAll, beforeAll, expect, test, describe } from "bun:test";
 
-describe('LoggerConsole', function () {
-  let logger;  
+import LoggerConsoleFactory from '../../src/logger/transports/console';
+const LoggerConsole = LoggerConsoleFactory();
+
+describe('LoggerConsole', () => {
+  let testContext;
+
+  beforeAll(() => {
+    testContext = {};
+  });
+
+  let logger;
   let fn;
   let status;
   let levels;
 
-  before(() => {
+  beforeAll(() => {
     status = {};
     fn = {};
     levels = ['info', 'warn', 'error'];
@@ -19,84 +27,84 @@ describe('LoggerConsole', function () {
       fn[level] = console[level], console[level] = () => status[level]++;
     }
   });
-  
-  after(() => {
+
+  afterAll(() => {
     for(let i = 0; i < levels.length; i++) {
       const level = levels[i];
       //eslint-disable-next-line no-console
       console[level] = fn[level]
     }
   });
-  
-  describe('instance creation', function () {
-    it('should create an instance', function () {
-      assert.doesNotThrow(() => logger = new LoggerConsole());
-      logger.node = this.node;
+
+  describe('instance creation', () => {
+    test('should create an instance', () => {
+      expect(() => logger = new LoggerConsole()).not.toThrow();
+      logger.node = testContext.node;
     });
   });
 
-  describe('.init()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.init()', () => { 
+    test('should not throw an exception', async () => {
       await logger.init();
     });  
   });
 
-  describe('.info()', function () { 
-    it('should not increment', async function () {
+  describe('.info()', () => { 
+    test('should not increment', async () => {
       logger.level = 'warn';
       await logger.info('test info');
-      assert.equal(status['info'], 0);
+      expect(status['info']).toEqual(0);
     }); 
 
-    it('should increment', async function () {
+    test('should increment', async () => {
       logger.level = 'info';
       await logger.info('test info');
-      assert.equal(status['info'], 1);
+      expect(status['info']).toEqual(1);
     }); 
   });
 
-  describe('.warn()', function () { 
-    it('should not increment', async function () {
+  describe('.warn()', () => { 
+    test('should not increment', async () => {
       logger.level = 'error';
       await logger.info('test warn');
-      assert.equal(status['warn'], 0);
+      expect(status['warn']).toEqual(0);
     });
 
-    it('should increment', async function () {
+    test('should increment', async () => {
       logger.level = 'warn';
       await logger.warn('test warn');
-      assert.equal(status['warn'], 1);
+      expect(status['warn']).toEqual(1);
     });    
   });
 
-  describe('.error()', function () { 
-    it('should not increment', async function () {
+  describe('.error()', () => { 
+    test('should not increment', async () => {
       logger.level = false;
       await logger.info('test warn');
-      assert.equal(status['error'], 0);
+      expect(status['error']).toEqual(0);
     });
 
-    it('should increment', async function () {
+    test('should increment', async () => {
       logger.level = 'error';
       await logger.error('test error');
-      assert.equal(status['error'], 1);
+      expect(status['error']).toEqual(1);
     });    
   });
 
-  describe('.deinit()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.deinit()', () => { 
+    test('should not throw an exception', async () => {
       await logger.deinit();
     });
-  }); 
+  });
 
   describe('reinitialization', () => {
-    it('should not throw an exception', async function () {
+    test('should not throw an exception', async () => {
       await logger.init();
     });
   });
-  
-  describe('.destroy()', function () { 
-    it('should not throw an exception', async function () {
+
+  describe('.destroy()', () => { 
+    test('should not throw an exception', async () => {
       await logger.destroy();
     });
   });

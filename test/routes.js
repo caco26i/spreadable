@@ -1,17 +1,20 @@
-const assert = require('chai').assert;
-const fetch = require('node-fetch');
-const Node = require('../src/node')();
-const Client = require('../src/client')();
-const ApprovalClient = require('../src/approval/transports/client')();
-const utils = require('../src/utils');
-const schema = require('../src/schema');
-const tools = require('./tools');
+import { afterAll, beforeAll, expect, test, describe } from "bun:test";
+import fetch from 'node-fetch';
+import NodeFactory from '../src/node';
+const Node = NodeFactory();
+import ClientFactory from '../src/client';
+const Client = ClientFactory();
+import ApprovalClientFactory from '../src/approval/transports/client';
+const ApprovalClient = ApprovalClientFactory();
+import utils from '../src/utils';
+import schema from '../src/schema';
+import tools from './tools';
 
 describe('routes', () => {
   let node;
   let client;
 
-  before(async function () {
+  beforeAll(async () => {
     node = new Node(await tools.createNodeOptions({ 
       network: { 
         auth: { username: 'username', password: 'password' }
@@ -27,101 +30,101 @@ describe('routes', () => {
     await client.init();
   });
 
-  after(async function () {
+  afterAll(async () => {
     await node.deinit();
     await client.deinit();
   });
 
-  describe('/ping', function () {
-    it('should return the right address', async function () { 
+  describe('/ping', () => {
+    test('should return the right address', async () => { 
       const res = await fetch(`http://${node.address}/ping`);
       const json = await res.json();
-      assert.equal(json.address, node.address);      
-      assert.equal(json.version, node.getVersion());
+      expect(json.address).toEqual(node.address);      
+      expect(json.version).toEqual(node.getVersion());
     });
   });
 
-  describe('/status', function () {
-    it('should return an auth error', async function () { 
+  describe('/status', () => {
+    test('should return an auth error', async () => { 
       const res = await fetch(`http://${node.address}/status`);
-      assert.equal(await res.status, 401);
+      expect(await res.status).toEqual(401);
     });
 
-    it('should return the status', async function () { 
+    test('should return the status', async () => { 
       const options = client.createDefaultRequestOptions({ method: 'get' });
       const res = await fetch(`http://${node.address}/status`, options);
       const json = await res.json();
 
-      assert.doesNotThrow(() => {
+      expect(() => {
         utils.validateSchema(schema.getStatusResponse(), json);
-      });
+      }).not.toThrow();
     });
 
-    it('should return the pretty status', async function () { 
+    test('should return the pretty status', async () => { 
       const options = client.createDefaultRequestOptions({ method: 'get' });
       const res = await fetch(`http://${node.address}/status?pretty`, options);
       const json = await res.json();
       
-      assert.doesNotThrow(() => {
+      expect(() => {
         utils.validateSchema(schema.getStatusPrettyResponse(), json);
-      });
+      }).not.toThrow();
     });
   });  
 
-  describe('/client/get-available-node', function () {
-    it('should return an auth error', async function () { 
+  describe('/client/get-available-node', () => {
+    test('should return an auth error', async () => { 
       const res = await fetch(`http://${node.address}/client/get-available-node`, { method: 'post' });
-      assert.equal(await res.status, 401);
+      expect(await res.status).toEqual(401);
     });
 
-    it('should return the node address', async function () { 
+    test('should return the node address', async () => { 
       const options = client.createDefaultRequestOptions();
       const res = await fetch(`http://${node.address}/client/get-available-node`, options);
       const json = await res.json();
 
-      assert.doesNotThrow(() => {
+      expect(() => {
         utils.validateSchema(schema.getAvailableNodeResponse(), json);
-      });
+      }).not.toThrow();
     });
   });
 
-  describe('/client/request-approval-key', function () {
-    it('should return an auth error', async function () { 
+  describe('/client/request-approval-key', () => {
+    test('should return an auth error', async () => { 
       const res = await fetch(`http://${node.address}/client/request-approval-key`, { method: 'post' });
-      assert.equal(await res.status, 401);
+      expect(await res.status).toEqual(401);
     });
 
-    it('should return a data error', async function () { 
+    test('should return a data error', async () => { 
       const options = client.createDefaultRequestOptions();  
       const res = await fetch(`http://${node.address}/client/request-approval-key`, options);
-      assert.equal(res.status, 422);
+      expect(res.status).toEqual(422);
     });
 
-    it('should return the right schema', async function () {
+    test('should return the right schema', async () => {
       const body = { action: 'test' };
       const options = client.createDefaultRequestOptions(tools.createJsonRequestOptions({ body }));
       const res = await fetch(`http://${node.address}/client/request-approval-key`, options);
       const json = await res.json();
 
-      assert.doesNotThrow(() => {
+      expect(() => {
         utils.validateSchema(schema.getRequestApprovalKeyResponse(), json);
-      });
+      }).not.toThrow();
     });
   });
 
-  describe('/client/add-approval-info', function () {
-    it('should return an auth error', async function () { 
+  describe('/client/add-approval-info', () => {
+    test('should return an auth error', async () => { 
       const res = await fetch(`http://${node.address}/client/add-approval-info`, { method: 'post' });
-      assert.equal(await res.status, 401);
+      expect(await res.status).toEqual(401);
     });
 
-    it('should return a data error', async function () { 
+    test('should return a data error', async () => { 
       const options = client.createDefaultRequestOptions();  
       const res = await fetch(`http://${node.address}/client/add-approval-info`, options);
-      assert.equal(res.status, 422);
+      expect(res.status).toEqual(422);
     });
 
-    it('should return the success message', async function () {
+    test('should return the success message', async () => {
       const approval = await node.getApproval('test')
       const body = { 
         action: 'test',
@@ -131,23 +134,23 @@ describe('routes', () => {
       const options = client.createDefaultRequestOptions(tools.createJsonRequestOptions({ body }));
       const res = await fetch(`http://${node.address}/client/add-approval-info`, options);
       const json = await res.json();
-      assert.isTrue(json.success);
+      expect(json.success).toBe(true);
     });
   });
 
-  describe('/client/request-approval-question', function () {
-    it('should return an auth error', async function () { 
+  describe('/client/request-approval-question', () => {
+    test('should return an auth error', async () => { 
       const res = await fetch(`http://${node.address}/client/request-approval-question`, { method: 'post' });
-      assert.equal(await res.status, 401);
+      expect(await res.status).toEqual(401);
     });
 
-    it('should return a data error', async function () { 
+    test('should return a data error', async () => { 
       const options = client.createDefaultRequestOptions();  
       const res = await fetch(`http://${node.address}/client/request-approval-question`, options);
-      assert.equal(res.status, 422);
+      expect(res.status).toEqual(422);
     });
 
-    it('should return the question', async function () {
+    test('should return the question', async () => {
       const body = { 
         action: 'test',
         key: 'key',
@@ -156,24 +159,24 @@ describe('routes', () => {
       const options = client.createDefaultRequestOptions(tools.createJsonRequestOptions({ body }));
       const res = await fetch(`http://${node.address}/client/request-approval-question`, options);
       const json = await res.json();
-      assert.isDefined(json.question);
+      expect(json.question).toBeDefined();
     });
   });
 
-  describe('/api/node/get-approval-info', function () {
-    it('should return an auth error', async function () { 
+  describe('/api/node/get-approval-info', () => {
+    test('should return an auth error', async () => { 
       const options = tools.createJsonRequestOptions();         
       const res = await fetch(`http://${node.address}/api/node/get-approval-info`, options);
-      assert.equal(await res.status, 401);
+      expect(await res.status).toEqual(401);
     });
 
-    it('should return a data error', async function () { 
+    test('should return a data error', async () => { 
       const options = node.createDefaultRequestOptions();  
       const res = await fetch(`http://${node.address}/api/node/get-approval-info`, options);
-      assert.equal(res.status, 422);
+      expect(res.status).toEqual(422);
     });
 
-    it('should return the info', async function () {
+    test('should return the info', async () => {
       const body = { 
         action: 'test',
         key: 'key'
@@ -181,24 +184,24 @@ describe('routes', () => {
       const options = node.createDefaultRequestOptions(tools.createJsonRequestOptions({ body }));
       const res = await fetch(`http://${node.address}/api/node/get-approval-info`, options);
       const json = tools.createServerResponse(node.address, await res.json());
-      assert.isDefined(json.info);
+      expect(json.info).toBeDefined();
     });
   });
 
-  describe('/api/node/check-approval-answer', function () {
-    it('should return an auth error', async function () { 
+  describe('/api/node/check-approval-answer', () => {
+    test('should return an auth error', async () => { 
       const options = tools.createJsonRequestOptions();         
       const res = await fetch(`http://${node.address}/api/node/check-approval-answer`, options);
-      assert.equal(await res.status, 401);
+      expect(await res.status).toEqual(401);
     });
 
-    it('should return a data error', async function () { 
+    test('should return a data error', async () => { 
       const options = node.createDefaultRequestOptions();  
       const res = await fetch(`http://${node.address}/api/node/check-approval-answer`, options);
-      assert.equal(res.status, 422);
+      expect(res.status).toEqual(422);
     });
 
-    it('should return the success message', async function () {
+    test('should return the success message', async () => {
       const approver = await node.db.getApproval('key');
       const body = { 
         action: 'test',
@@ -211,14 +214,14 @@ describe('routes', () => {
       const options = node.createDefaultRequestOptions(tools.createJsonRequestOptions({ body }));
       const res = await fetch(`http://${node.address}/api/node/check-approval-answer`, options);
       const json = tools.createServerResponse(node.address, await res.json());
-      assert.isTrue(json.success);
+      expect(json.success).toBe(true);
     });
   });
 
-  describe('/api/node/register', function () {
+  describe('/api/node/register', () => {
     let targetNode;
 
-    before(async () => {
+    beforeAll(async () => {
       targetNode = new Node(await tools.createNodeOptions({ 
         initialNetworkAddress: node.address,
         network: node.options.network 
@@ -227,81 +230,81 @@ describe('routes', () => {
       await targetNode.sync();
     });
 
-    after(async () => {
+    afterAll(async () => {
       await targetNode.deinit();
     })
 
-    it('should return an auth error', async function () {        
+    test('should return an auth error', async () => {        
       const res = await fetch(`http://${node.address}/api/node/register`, { method: 'post' });
-      assert.equal(await res.status, 401);
+      expect(await res.status).toEqual(401);
     });
 
-    it('should return an interview error', async function () {        
+    test('should return an interview error', async () => {        
       const body = { target: 'localhost:1' };
       const options = node.createDefaultRequestOptions(tools.createJsonRequestOptions({ body }));
       const res = await fetch(`http://${node.address}/api/node/register`, options);
-      assert.equal(await res.status, 422);
+      expect(await res.status).toEqual(422);
     });
 
-    it('should return the right schema', async function () {
+    test('should return the right schema', async () => {
       const body = { target: targetNode.address };
       const options = node.createDefaultRequestOptions(tools.createJsonRequestOptions({ body }));
       const res = await fetch(`http://${node.address}/api/node/register`, options);
       const json = tools.createServerResponse(node.address, await res.json());
-      assert.doesNotThrow(() => {
+      expect(() => {
         utils.validateSchema(schema.getRegisterResponse(), json);
-      });
+      }).not.toThrow();
     });
   });
 
-  describe('/api/node/structure', function () {
-    it('should return an auth error', async function () { 
+  describe('/api/node/structure', () => {
+    test('should return an auth error', async () => { 
       const options = tools.createJsonRequestOptions();         
       const res = await fetch(`http://${node.address}/api/node/structure`, options);
-      assert.equal(await res.status, 401);
+      expect(await res.status).toEqual(401);
     });
 
-    it('should return the right schema', async function () {
+    test('should return the right schema', async () => {
       const options = node.createDefaultRequestOptions();
       const res = await fetch(`http://${node.address}/api/node/structure`, options);
       const json = tools.createServerResponse(node.address, await res.json());
-      assert.doesNotThrow(() => {
+      expect(() => {
         utils.validateSchema(schema.getStructureResponse(), json);
-      });
+      }).not.toThrow();
     });
   });
 
-  describe('/api/node/get-interview-summary', function () {
-    it('should return an auth error', async function () { 
+  describe('/api/node/get-interview-summary', () => {
+    test('should return an auth error', async () => { 
       const options = tools.createJsonRequestOptions();         
       const res = await fetch(`http://${node.address}/api/node/get-interview-summary`, options);
-      assert.equal(await res.status, 401);
+      expect(await res.status).toEqual(401);
     });
 
-    it('should return the right schema', async function () {
+    test('should return the right schema', async () => {
       const options = node.createDefaultRequestOptions();
       const res = await fetch(`http://${node.address}/api/node/get-interview-summary`, options);      
       const json = tools.createServerResponse(node.address, await res.json());      
-      assert.doesNotThrow(() => {
+      expect(() => {
         utils.validateSchema(schema.getInterviewSummaryResponse(), json);
-      });
+      }).not.toThrow();
     });
   });
 
-  describe('/api/node/provide-registration', function () {
-    it('should return an auth error', async function () {         
+  describe('/api/node/provide-registration', () => {
+    test('should return an auth error', async () => {         
       const res = await fetch(`http://${node.address}/api/node/provide-registration`, { method: 'post' });
-      assert.equal(await res.status, 401);
+      expect(await res.status).toEqual(401);
     });
 
-    it('should return the right schema', async function () {
+    test('should return the right schema', async () => {
       const body = { target: node.address };
       const options = node.createDefaultRequestOptions(tools.createJsonRequestOptions({ body }));
       const res = await fetch(`http://${node.address}/api/node/provide-registration`, options);
       const json = tools.createServerResponse(node.address, await res.json());
-      assert.doesNotThrow(() => {
+      expect(() => {
         utils.validateSchema(schema.getProvideRegistrationResponse(), json);
-      });
+      }).not.toThrow();
     });
   });
 });

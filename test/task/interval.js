@@ -1,53 +1,61 @@
-const assert = require('chai').assert;
-const TaskInterval = require('../../src/task/transports/interval')();
-const tools = require('../tools');
+import { beforeAll, expect, test, describe } from "bun:test";
+
+import TaskIntervalFactory from '../../src/task/transports/interval';
+const TaskInterval = TaskIntervalFactory();
+import tools from '../tools';
 
 describe('TaskInterval', () => {
+  let testContext;
+
+  beforeAll(() => {
+    testContext = {};
+  });
+
   let task;
-  
-  describe('instance creation', function () {
-    it('should create an instance', function () {
-      assert.doesNotThrow(() => task = new TaskInterval());
-      task.node = this.node;
+
+  describe('instance creation', () => {
+    test('should create an instance', () => {
+      expect(() => task = new TaskInterval()).not.toThrow();
+      task.node = testContext.node;
     });
   });
 
-  describe('.init()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.init()', () => { 
+    test('should not throw an exception', async () => {
       await task.init();
     });  
   });
 
-  describe('.start()', function () { 
-    it('should start the task every 100ms', async function () {
+  describe('.start()', () => { 
+    test('should start the task every 100ms', async () => {
       let counter = 0;
       const interval = 100;
       const res = await task.add('test', interval, () => counter++);      
       await task.start(res);
-      assert.equal(counter, 0, 'check before all');
+      expect(counter).toEqual(0);
       await tools.wait(interval / 2);
-      assert.equal(counter, 0, 'check after the half iteration');
+      expect(counter).toEqual(0);
       await tools.wait(interval / 2);
-      assert.equal(counter, 1, 'check after the first iteration');
+      expect(counter).toEqual(1);
       await tools.wait(interval);
-      assert.equal(counter, 2, 'check after the second iteration');
+      expect(counter).toEqual(2);
     });
   });
 
-  describe('.deinit()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.deinit()', () => { 
+    test('should not throw an exception', async () => {
       await task.deinit();
     });
-  }); 
+  });
 
   describe('reinitialization', () => {
-    it('should not throw an exception', async function () {
+    test('should not throw an exception', async () => {
       await task.init();
     });
   });
-  
-  describe('.destroy()', function () { 
-    it('should not throw an exception', async function () {
+
+  describe('.destroy()', () => { 
+    test('should not throw an exception', async () => {
       await task.destroy();
     });
   });

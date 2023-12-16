@@ -1,40 +1,48 @@
-const assert = require('chai').assert;
-const Approval = require('../../src/approval/transports/approval')();
+import { beforeAll, expect, test, describe } from "bun:test";
+
+import ApprovalFactory from '../../src/approval/transports/approval';
+const Approval = ApprovalFactory();
 
 describe('Approval', () => {
+  let testContext;
+
+  beforeAll(() => {
+    testContext = {};
+  });
+
   let approval;
-  
-  describe('instance creation', function () {
-    it('should create an instance', function () {
-      assert.doesNotThrow(() => approval = new Approval());
-      approval.node = this.node;
+
+  describe('instance creation', () => {
+    test('should create an instance', () => {
+      expect(() => approval = new Approval()).not.toThrow();
+      approval.node = testContext.node;
     });
 
-    it('should create the default properties', function () {
+    test('should create the default properties', () => {
       assert.containsAllKeys(approval, ['approversCount', 'decisionLevel', 'period']);
     });
   });
 
-  describe('.init()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.init()', () => { 
+    test('should not throw an exception', async () => {
       await approval.init();
     });  
   });
 
-  describe('.deinit()', function () {
-    it('should not throw an exception', async function () {
+  describe('.deinit()', () => {
+    test('should not throw an exception', async () => {
       await approval.deinit();
     });
-  });  
+  });
 
   describe('reinitialization', () => {
-    it('should not throw an exception', async function () {
+    test('should not throw an exception', async () => {
       await approval.init();
     });
   });
-  
-  describe('.destroy()', function () { 
-    it('should not throw an exception', async function () {
+
+  describe('.destroy()', () => { 
+    test('should not throw an exception', async () => {
       await approval.destroy();
     });
   });

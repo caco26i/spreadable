@@ -1,11 +1,12 @@
-const assert = require('chai').assert;
-const getPort = require('get-port');
-const http = require('http');
-const path = require('path');
-const fse = require('fs-extra');
-const mocks = require('node-mocks-http');
-const utils = require('../src/utils');
-const tools = require('./tools');
+import { beforeAll, beforeEach, expect, test, describe} from "bun:test";
+
+import getPort from 'get-port';
+import http from 'http';
+import path from 'path';
+import fse from 'fs-extra';
+import mocks from 'node-mocks-http';
+import utils from '../src/utils';
+import tools from './tools';
 
 describe('utils', () => {
   describe('.validateSchema()', () => {
@@ -31,8 +32,8 @@ describe('utils', () => {
     }
 
     describe('multiple types', () => {
-      it('should be true', () => { 
-        assert.doesNotThrow(() => {
+      test('should be true', () => { 
+        expect(() => {
           utils.validateSchema([
             {
               type: 'object',
@@ -45,11 +46,11 @@ describe('utils', () => {
             },
             'string'
           ], { x: 5 });
-        });
+        }).not.toThrow();
       });
 
-      it('should be false', () => { 
-        assert.throws(() => {
+      test('should be false', () => { 
+        expect(() => {
           utils.validateSchema([
             {
               type: 'object',
@@ -62,115 +63,110 @@ describe('utils', () => {
             },
             'string'
           ], { x: '1' });
-        });
+        }).toThrow();
       });
     });
 
     describe('number', () => {
-      it('should verify a number', () => { 
-        assert.doesNotThrow(() => {
+      test('should verify a number', () => { 
+        expect(() => {
           utils.validateSchema('number', 1, 'check integer');
           utils.validateSchema('number', 1.5, 'check float');
-        });
+        }).not.toThrow();
       });
 
-      it('should not verify a wrong number', () => { 
-        assert.throws(() => testFails('number'));
+      test('should not verify a wrong number', () => { 
+        expect(() => testFails('number')).toThrow();
       });
     });
 
     describe('string', () => {
-      it('should verify a string', () => { 
-        assert.doesNotThrow(() => {
+      test('should verify a string', () => { 
+        expect(() => {
           utils.validateSchema('string', '1');
-        });
+        }).not.toThrow();
       });
 
-      it('should not verify a wrong string', () => { 
-        assert.throws(() => testFails('string'));
+      test('should not verify a wrong string', () => { 
+        expect(() => testFails('string')).toThrow();
       });
     });
 
     describe('boolean', () => {
-      it('should verify a boolean', () => { 
-        assert.doesNotThrow(() => {
+      test('should verify a boolean', () => { 
+        expect(() => {
           utils.validateSchema('boolean', true);
-        });
+        }).not.toThrow();
       });
 
-      it('should not verify a wrong boolean', () => { 
-        assert.throws(() => testFails('boolean'));
+      test('should not verify a wrong boolean', () => { 
+        expect(() => testFails('boolean')).toThrow();
       });
     });
 
     describe('array', () => {
-      it('should verify an array', () => { 
-        assert.doesNotThrow(() => {
+      test('should verify an array', () => { 
+        expect(() => {
           utils.validateSchema('array', []);
-        });
+        }).not.toThrow();
       });
 
-      it('should not verify a wrong array', () => { 
-        assert.throws(() => testFails('array'));
+      test('should not verify a wrong array', () => { 
+        expect(() => testFails('array')).toThrow();
       });
 
-      it('should verify array items', () => { 
-        assert.doesNotThrow(() => 
+      test('should verify array items', () => { 
+        expect(() => 
           utils.validateSchema({
             type: 'array',
             items: 'number'
-          }, [1, 2])
-        );
+          }, [1, 2])).not.toThrow();
       });
 
-      it('should not verify wrong array "minLength"', () => { 
-        assert.throws(() => 
+      test('should not verify wrong array "minLength"', () => { 
+        expect(() => 
           utils.validateSchema({
             type: 'array',
             minLength: 1
-          }, [])
-        );
+          }, [])).toThrow();
       });
 
-      it('should not verify wrong array "maxLength"', () => { 
-        assert.throws(() => 
+      test('should not verify wrong array "maxLength"', () => { 
+        expect(() => 
           utils.validateSchema({
             type: 'array',
             maxLength: 1
-          }, [1, 2])
-        );
+          }, [1, 2])).toThrow();
       });
 
-      it('should not verify wrong array "uniq"', () => { 
-        assert.throws(() => 
+      test('should not verify wrong array "uniq"', () => { 
+        expect(() => 
           utils.validateSchema({
             type: 'array',
             uniq: true
-          }, [1, 1, 2]),
-        '', 'check without the key');
+          }, [1, 1, 2])).toThrow();
 
-        assert.throws(() => 
+        expect(() => 
           utils.validateSchema({
             type: 'array',
             uniq: 'x'
-          }, [{ x: 1 }, { x: 1 }, { x: 2 }]),
-        '', 'check with the key');
+          }, [{ x: 1 }, { x: 1 }, { x: 2 }])).toThrow();
       });
     });
 
     describe('object', () => {
-      it('should verify an object', () => { 
-        assert.doesNotThrow(() => {
+      test('should verify an object', () => { 
+        expect(() => {
           utils.validateSchema('object', {});
-        });
+        }).not.toThrow();
       });
   
-      it('should not verify a wrong object', () => { 
-        assert.throws(() => testFails('object'));
+      test('should not verify a wrong object', () => { 
+        expect(() => testFails('object')).toThrow();
       });
 
-      it('should check props', () => { 
-        assert.doesNotThrow(() => {
+      test('should check props', () => { 
+        expect(() => {
           utils.validateSchema({
             type: 'object',
             props: {
@@ -178,9 +174,9 @@ describe('utils', () => {
               y: 'number'
             }
           }, { x: 1 }, 'check one prop');
-        });
+        }).not.toThrow();
 
-        assert.doesNotThrow(() => {
+        expect(() => {
           utils.validateSchema({
             type: 'object',
             props: {
@@ -188,9 +184,9 @@ describe('utils', () => {
               y: 'number'
             }
           }, { x: 1, y: 3}, 'check all props');
-        });
+        }).not.toThrow();
 
-        assert.throws(() => {
+        expect(() => {
           utils.validateSchema({
             type: 'object',
             props: {
@@ -198,11 +194,11 @@ describe('utils', () => {
               y: 'number'
             }
           }, { x: 1, y: '1'}, 'check wrong props');
-        });
+        }).toThrow();
       });
 
-      it('should check strict props', () => { 
-        assert.throws(() => {
+      test('should check strict props', () => { 
+        expect(() => {
           utils.validateSchema({
             type: 'object',
             props: {
@@ -211,9 +207,9 @@ describe('utils', () => {
             },
             strict: true
           }, { x: 1 }, 'check the wrong case');
-        });
+        }).toThrow();
 
-        assert.doesNotThrow(() => {
+        expect(() => {
           utils.validateSchema({
             type: 'object',
             props: {
@@ -222,11 +218,11 @@ describe('utils', () => {
             },
             strict: true
           }, { x: 1, y: 1 }, 'check the right case');
-        });
+        }).not.toThrow();
       });
 
-      it('should check expected props', () => { 
-        assert.throws(() => {
+      test('should check expected props', () => { 
+        expect(() => {
           utils.validateSchema({
             type: 'object',
             props: {
@@ -235,9 +231,9 @@ describe('utils', () => {
             },
             expected: true
           }, { x: 1, z: 1 }, 'check the wrong case');
-        });
+        }).toThrow();
 
-        assert.doesNotThrow(() => {
+        expect(() => {
           utils.validateSchema({
             type: 'object',
             props: {
@@ -246,11 +242,11 @@ describe('utils', () => {
             },
             expected: true
           }, { x: 1 }, 'check the right case');
-        });
+        }).not.toThrow();
       });
 
-      it('should check required props', () => { 
-        assert.throws(() => {
+      test('should check required props', () => { 
+        expect(() => {
           utils.validateSchema({
             type: 'object',
             props: {
@@ -259,9 +255,9 @@ describe('utils', () => {
             },
             required: ['x']
           }, { y: 1 }, 'check the wrong case');
-        });
+        }).toThrow();
 
-        assert.doesNotThrow(() => {
+        expect(() => {
           utils.validateSchema({
             type: 'object',
             props: {
@@ -270,118 +266,118 @@ describe('utils', () => {
             },
             required: ['x']
           }, { x: 1 }, 'check the right case');
-        });
+        }).not.toThrow();
       });
     });
 
     describe('check the "value" option', () => {
-      it('should verify the right value', () => { 
-        assert.doesNotThrow(() => {
+      test('should verify the right value', () => { 
+        expect(() => {
           utils.validateSchema({
             type: 'number',
             value: 1
           }, 1, 'check one value');
-        });
+        }).not.toThrow();
 
-        assert.doesNotThrow(() => {
+        expect(() => {
           utils.validateSchema({
             type: 'number',
             value: [1, 2]
           }, 1, 'check a few values');
-        });
+        }).not.toThrow();
 
-        assert.doesNotThrow(() => {
+        expect(() => {
           utils.validateSchema({
             type: 'number',
             value: /1|2/
           }, 1, 'check a RegExp');
-        });
+        }).not.toThrow();
 
-        assert.doesNotThrow(() => {
+        expect(() => {
           utils.validateSchema({
             type: 'number',
             value: val => val == 1
           }, 1, 'check a function');
-        });
+        }).not.toThrow();
       });      
 
-      it('should not verify the wrong value', () => { 
-        assert.throws(() => {
+      test('should not verify the wrong value', () => { 
+        expect(() => {
           utils.validateSchema({
             type: 'number',
             value: 1
           }, 2, 'check one value');
-        });
+        }).toThrow();
 
-        assert.throws(() => {
+        expect(() => {
           utils.validateSchema({
             type: 'number',
             value: [1, 2]
           }, 3, 'check a few values');
-        });
+        }).toThrow();
 
-        assert.throws(() => {
+        expect(() => {
           utils.validateSchema({
             type: 'number',
             value: /1|2/
           }, 3, 'check a RegExp');
-        });
+        }).toThrow();
 
-        assert.throws(() => {
+        expect(() => {
           utils.validateSchema({
             type: 'number',
             value: val => val == 1
           }, 2, 'check a function');
-        });
+        }).toThrow();
       });
     });
   });
 
   describe('.getRandomElement()', () => {
-    it('should return the list item', () => { 
+    test('should return the list item', () => { 
       const arr = [];
 
       for(let i = 0; i < 1000; i++) {
         arr.push(i);
       }
 
-      assert.include(arr, utils.getRandomElement(arr));
+      expect(arr).toContain(utils.getRandomElement(arr));
     });
   });
 
   describe('.getMs()', () => {
-    it('should return the same value', () => {
+    test('should return the same value', () => {
       let val = 1000;
-      assert.equal(val, utils.getMs(val), 'check a number');
+      expect(val).toEqual(utils.getMs(val));
       val = 'auto';
-      assert.equal(val, utils.getMs(val), 'check "auto"');
+      expect(val).toEqual(utils.getMs(val));
     });
 
-    it('should convert to ms', () => {
-      assert.equal(1000, utils.getMs('1s'));
+    test('should convert to ms', () => {
+      expect(1000).toEqual(utils.getMs('1s'));
     });
   });
 
   describe('.getBytes()', () => {
-    it('should return the same value', () => {
+    test('should return the same value', () => {
       let val = 1024;
-      assert.equal(val, utils.getBytes(val), 'check a number');
+      expect(val).toEqual(utils.getBytes(val));
       val = 'auto';
-      assert.equal(val, utils.getBytes(val), 'check "auto"');
+      expect(val).toEqual(utils.getBytes(val));
       val = '1%';
-      assert.equal(val, utils.getBytes(val), 'check a percentage');
+      expect(val).toEqual(utils.getBytes(val));
     });
 
-    it('should convert to bytes', () => {
-      assert.equal(1024, utils.getBytes('1kb'));
+    test('should convert to bytes', () => {
+      expect(1024).toEqual(utils.getBytes('1kb'));
     });
   });
 
   describe('.getCpuUsage()', () => {
-    it('should return the percentage', async () => {
+    test('should return the percentage', async () => {
       for(let i = 0; i < 5; i++) {       
         const result = await utils.getCpuUsage({ timeout: 100 });
-        assert.isOk(result >= 0 && result <= 100);
+        expect(result >= 0 && result <= 100).toBeTruthy();
       }
     });
   });
@@ -390,47 +386,47 @@ describe('utils', () => {
     let port;
     let server;
 
-    before(async () => {
+    beforeAll(async () => {
       port = await getPort();
       server = http.createServer(() => {});
     });
 
-    it('should return false before', async () => {
-      assert.isFalse(await utils.isPortUsed(port));
+    test('should return false before', async () => {
+      expect(await utils.isPortUsed(port)).toBe(false);
     });
 
-    it('should return true', async () => {
+    test('should return true', async () => {
       await new Promise(resolve => server.listen(port, resolve));
-      assert.isTrue(await utils.isPortUsed(port));
+      expect(await utils.isPortUsed(port)).toBe(true);
     });
 
-    it('should return false after', async () => {
+    test('should return false after', async () => {
       await new Promise(resolve => server.close(resolve));
-      assert.isFalse(await utils.isPortUsed(port));
+      expect(await utils.isPortUsed(port)).toBe(false);
     });
   });
 
   describe('.getHostIp()', () => {
-    it('should return localhost ip', async () => {
-      assert.equal(await utils.getHostIp('localhost'), '127.0.0.1');
+    test('should return localhost ip', async () => {
+      expect(await utils.getHostIp('localhost')).toEqual('127.0.0.1');
     });
 
-    it('should return null for a wrong host', async () => {
-      assert.isNull(await utils.getHostIp('somewronghostname'));
+    test('should return null for a wrong host', async () => {
+      expect(await utils.getHostIp('somewronghostname')).toBeNull();
     });
 
-    it('should return a valid ip address', async () => {
-      assert.isTrue(utils.isValidIp(await utils.getHostIp('example.com')));
+    test('should return a valid ip address', async () => {
+      expect(utils.isValidIp(await utils.getHostIp('example.com'))).toBe(true);
     });
 
-    it('should return the same value for ipv4', async () => {
+    test('should return the same value for ipv4', async () => {
       const val = '8.8.8.8';
-      assert.equal(await utils.getHostIp(val), val);
+      expect(await utils.getHostIp(val)).toEqual(val);
     });
 
-    it('should return the same value for ipv6', async () => {
+    test('should return the same value for ipv6', async () => {
       const val = '[2001:0db8:85a3:0000:0000:8a2e:0370:7334]';
-      assert.equal(await utils.getHostIp(val), val);
+      expect(await utils.getHostIp(val)).toEqual(val);
     });
   });
 
@@ -439,61 +435,61 @@ describe('utils', () => {
     let timeout;
     let last;
 
-    before(() => {
+    beforeEach(() => {
       timeout = 200;
       timer = utils.getRequestTimer(timeout);
     });
 
-    it('should return the current timeout', (done) => {
+    test('should return the current timeout', (done) => {
       last = timeout;
       setTimeout(() => {
         timeout = timer();
-        assert.isTrue(timeout < last);
+        expect(timeout < last).toBe(true);
         done();
       });
     });
 
-    it('should return the passed timeout', async () => {
+    test('should return the passed timeout', async () => {
       last = timeout;
       timeout = timer(last / 2);
-      assert.equal(timeout, last / 2);
+      expect(timeout).toEqual(last / 2);
     });
 
-    it('should return cut timeout', async () => {
+    test('should return cut timeout', async () => {
       last = timeout;
       timeout = timer([last, last * 2]);
-      assert.isOk(timeout < last);
+      expect(timeout < last).toBeTruthy();
     });
   });
 
   describe('.getRemoteIp()', () => {
-    it('should return the right ip', () => {
+    test('should return the right ip', () => {
       const remoteAddress = '127.0.0.1';
       const req = mocks.createRequest({ connection: { remoteAddress } });
-      assert.equal(utils.getRemoteIp(req), remoteAddress);
+      expect(utils.getRemoteIp(req)).toEqual(remoteAddress);
     });
 
-    it('should return the forwarded ip', () => {
+    test('should return the forwarded ip', () => {
       const remoteAddress = '127.0.0.1';
       const clientAddress = '1.1.1.1';
       const req = mocks.createRequest({ 
         connection: { remoteAddress },
         headers: { 'x-forwarded-for': clientAddress }
       });
-      assert.equal(utils.getRemoteIp(req), clientAddress);
+      expect(utils.getRemoteIp(req)).toEqual(clientAddress);
     });
 
-    it('should return the remote ip with the trustlist', () => {
+    test('should return the remote ip with the trustlist', () => {
       const remoteAddress = '127.0.0.1';
       const clientAddress = '1.1.1.1';
       const req = mocks.createRequest({ 
         connection: { remoteAddress },
         headers: { 'x-forwarded-for': clientAddress }
       });
-      assert.equal(utils.getRemoteIp(req, { trusted: ['2.2.2.2'] }), remoteAddress);
+      expect(utils.getRemoteIp(req, { trusted: ['2.2.2.2'] })).toEqual(remoteAddress);
     });
 
-    it('should return the client ip with the trustlist', () => {
+    test('should return the client ip with the trustlist', () => {
       const remoteAddress = '127.0.0.1';
       const clientAddress = '1.1.1.1';
       const trusted = [remoteAddress, '2.2.2.2']
@@ -501,10 +497,10 @@ describe('utils', () => {
         connection: { remoteAddress },
         headers: { 'x-forwarded-for': `${clientAddress}, ${ trusted[0] }, ${ trusted[1] }` }
       });
-      assert.equal(utils.getRemoteIp(req, { trusted }), clientAddress);
+      expect(utils.getRemoteIp(req, { trusted })).toEqual(clientAddress);
     });
 
-    it('should return the remote ip with the trustlist broken chain', () => {
+    test('should return the remote ip with the trustlist broken chain', () => {
       const remoteAddress = '127.0.0.1';
       const clientAddress = '1.1.1.1';
       const trusted = [remoteAddress, '2.2.2.2']
@@ -512,202 +508,206 @@ describe('utils', () => {
         connection: { remoteAddress },
         headers: { 'x-forwarded-for': `${clientAddress}, ${ trusted[0] }, ${ trusted[1] }, 3.3.3.3` }
       });
-      assert.equal(utils.getRemoteIp(req, { trusted: ['2.2.2.2'] }), remoteAddress);
+      expect(utils.getRemoteIp(req, { trusted: ['2.2.2.2'] })).toEqual(remoteAddress);
     });
   });
 
   describe('.getExternalIp()', () => {
-    it('should return a right ip', async () => {
-      assert.isTrue(utils.isValidIp(await utils.getExternalIp()));  
+    test('should return a right ip', async () => {
+      expect(utils.isValidIp(await utils.getExternalIp())).toBe(true);  
     });
   });
 
   describe('.getLocalIp()', () => {
-    it('should return a right ip', async () => {
-      assert.isTrue(utils.isValidIp(await utils.getLocalIp()));  
+    test('should return a right ip', async () => {
+      expect(utils.isValidIp(await utils.getLocalIp())).toBe(true);  
     });
   });
 
   describe('.isValidPort()', () => {
-    it('should return true', () => {
+    test('should return true', () => {
       for(let i = 0; i <= 65535; i++) {
-        assert.isTrue(utils.isValidPort(i));
+        expect(utils.isValidPort(i)).toBe(true);
       }    
       
-      assert.isTrue(utils.isValidPort('1'), 'check a string');
+      expect(utils.isValidPort('1')).toBe(true);
     });
 
-    it('should return false', () => {
-      assert.isFalse(utils.isValidPort(65536));
-      assert.isFalse(utils.isValidPort(65536 * 2));
-      assert.isFalse(utils.isValidPort('string'));     
-      assert.isFalse(utils.isValidPort()); 
-      assert.isFalse(utils.isValidPort(null));
-      assert.isFalse(utils.isValidPort({}));
-      assert.isFalse(utils.isValidPort([]));
+    test('should return false', () => {
+      expect(utils.isValidPort(65536)).toBe(false);
+      expect(utils.isValidPort(65536 * 2)).toBe(false);
+      expect(utils.isValidPort('string')).toBe(false);     
+      expect(utils.isValidPort()).toBe(false); 
+      expect(utils.isValidPort(null)).toBe(false);
+      expect(utils.isValidPort({})).toBe(false);
+      expect(utils.isValidPort([])).toBe(false);
     });
   });
 
   describe('.isValidIp()', () => {
-    it('should return true for ipv4', () => {
+    test('should return true for ipv4', () => {
       for(let i = 0; i < 256; i++) {
-        assert.isTrue(utils.isValidIp(`${i}.${i}.${i}.${i}`));
+        expect(utils.isValidIp(`${i}.${i}.${i}.${i}`)).toBe(true);
       }      
     });
 
-    it('should return true for ipv6', () => {
-      assert.isTrue(utils.isValidIp('::'));
-      assert.isTrue(utils.isValidIp('::1'));
-      assert.isTrue(utils.isValidIp('::192.0.0.1'));    
-      assert.isTrue(utils.isValidIp('ffff::'));
-      assert.isTrue(utils.isValidIp('::ffff:192.0.0.1'));
-      assert.isTrue(utils.isValidIp('::ffff:'));      
-      assert.isTrue(utils.isValidIp('64:ff9b::'));  
-      assert.isTrue(utils.isValidIp('2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d'));  
-      assert.isTrue(utils.isValidIp('[2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d]')); 
-      assert.isTrue(utils.isValidIp('ff00::'));     
+    test('should return true for ipv6', () => {
+      expect(utils.isValidIp('::')).toBe(true);
+      expect(utils.isValidIp('::1')).toBe(true);
+      expect(utils.isValidIp('::192.0.0.1')).toBe(true);    
+      expect(utils.isValidIp('ffff::')).toBe(true);
+      expect(utils.isValidIp('::ffff:192.0.0.1')).toBe(true);
+      expect(utils.isValidIp('::ffff:')).toBe(true);      
+      expect(utils.isValidIp('64:ff9b::')).toBe(true);  
+      expect(utils.isValidIp('2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d')).toBe(true);  
+      expect(utils.isValidIp('[2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d]')).toBe(true); 
+      expect(utils.isValidIp('ff00::')).toBe(true);     
     });
 
-    it('should return false', () => {
-      assert.isFalse(utils.isValidIp('256.0.0.0'));
-      assert.isFalse(utils.isValidIp(0));
-      assert.isFalse(utils.isValidIp(1));      
-      assert.isFalse(utils.isValidIp('string'));
-      assert.isFalse(utils.isValidIp('[string]'));
-      assert.isFalse(utils.isValidIp());
-      assert.isFalse(utils.isValidIp(null));
-      assert.isFalse(utils.isValidIp({}));
-      assert.isFalse(utils.isValidIp([]));
+    test('should return false', () => {
+      expect(utils.isValidIp('256.0.0.0')).toBe(false);
+      expect(utils.isValidIp(0)).toBe(false);
+      expect(utils.isValidIp(1)).toBe(false);      
+      expect(utils.isValidIp('string')).toBe(false);
+      expect(utils.isValidIp('[string]')).toBe(false);
+      expect(utils.isValidIp()).toBe(false);
+      expect(utils.isValidIp(null)).toBe(false);
+      expect(utils.isValidIp({})).toBe(false);
+      expect(utils.isValidIp([])).toBe(false);
     });
   });
 
   describe('.ipv4Tov6()', () => {
-    it('should convert ipv4 to ipv6 full format', () => {
-      assert.equal(utils.ipv4Tov6('192.0.0.1'), '0000:0000:0000:0000:0000:ffff:c000:0001');      
+    test('should convert ipv4 to ipv6 full format', () => {
+      expect(utils.ipv4Tov6('192.0.0.1')).toEqual('0000:0000:0000:0000:0000:ffff:c000:0001');      
     });
 
-    it('should throw an error', () => {
-      assert.throws(() => utils.ipv4Tov6('0000:0000:0000:0000:0000:ffff:c000:0001'));      
+    test('should throw an error', () => {
+      expect(() => utils.ipv4Tov6('0000:0000:0000:0000:0000:ffff:c000:0001')).toThrow();      
     });
   });
 
   describe('.isIpv6()', () => {
-    it('should return true', () => {
-      assert.isTrue(utils.isIpv6('::192.0.0.1'));    
-      assert.isTrue(utils.isIpv6('ffff::'));
-      assert.isTrue(utils.isIpv6('::ffff:192.0.0.1'));
-      assert.isTrue(utils.isIpv6('::ffff:'));
-      assert.isTrue(utils.isIpv6('2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d'));  
-      assert.isTrue(utils.isIpv6('[2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d]')); 
+    test('should return true', () => {
+      expect(utils.isIpv6('::192.0.0.1')).toBe(true);    
+      expect(utils.isIpv6('ffff::')).toBe(true);
+      expect(utils.isIpv6('::ffff:192.0.0.1')).toBe(true);
+      expect(utils.isIpv6('::ffff:')).toBe(true);
+      expect(utils.isIpv6('2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d')).toBe(true);  
+      expect(utils.isIpv6('[2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d]')).toBe(true); 
     });
 
-    it('should return false', () => {
-      assert.isFalse(utils.isIpv6('1.0.0.0')); 
+    test('should return false', () => {
+      expect(utils.isIpv6('1.0.0.0')).toBe(false); 
     });
   });
 
   describe('.getFullIpv6()', () => {
-    it('should return the right option', () => {
+    test('should return the right option', () => {
       const value = 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff';
-      assert.equal(utils.getFullIpv6(value), value);
+      expect(utils.getFullIpv6(value)).toEqual(value);
     });
 
-    it('should convert ipv6 short option to the full format', () => {
-      assert.equal(utils.getFullIpv6('ffff::'), 'ffff:0000:0000:0000:0000:0000:0000:0000');      
+    test('should convert ipv6 short option to the full format', () => {
+      expect(utils.getFullIpv6('ffff::')).toEqual('ffff:0000:0000:0000:0000:0000:0000:0000');      
     });
 
-    it('should convert ipv4 to ipv6 full format', () => {
-      assert.equal(utils.getFullIpv6('192.0.0.1'), '0000:0000:0000:0000:0000:ffff:c000:0001');      
+    test('should convert ipv4 to ipv6 full format', () => {
+      expect(utils.getFullIpv6('192.0.0.1')).toEqual('0000:0000:0000:0000:0000:ffff:c000:0001');      
     });
 
-    it('should throw an error', () => {
-      assert.throws(() => utils.getFullIpv6('wrong'));      
+    test('should throw an error', () => {
+      expect(() => utils.getFullIpv6('wrong')).toThrow();      
     });
   });
 
   describe('.isIpEqual()', () => {
-    it('should return true', () => {
-      assert.isTrue(utils.isIpEqual('192.0.0.1', '192.0.0.1'));
-      assert.isTrue(utils.isIpEqual('0000:0000:0000:0000:0000:ffff:c000:0001', '192.0.0.1'));
-      assert.isTrue(utils.isIpEqual('0000:0000:0000:0000:0000:ffff:c000:0001', '0000:0000:0000:0000:0000:ffff:c000:0001'));
-      assert.isTrue(utils.isIpEqual('0000:0000:0000:0000:0000:ffff:c000:0001', '::ffff:c000:0001'));
-      assert.isTrue(utils.isIpEqual('::ffff:c000:0001', '192.0.0.1'));
+    test('should return true', () => {
+      expect(utils.isIpEqual('192.0.0.1', '192.0.0.1')).toBe(true);
+      expect(utils.isIpEqual('0000:0000:0000:0000:0000:ffff:c000:0001', '192.0.0.1')).toBe(true);
+      expect(
+        utils.isIpEqual('0000:0000:0000:0000:0000:ffff:c000:0001', '0000:0000:0000:0000:0000:ffff:c000:0001')
+      ).toBe(true);
+      expect(
+        utils.isIpEqual('0000:0000:0000:0000:0000:ffff:c000:0001', '::ffff:c000:0001')
+      ).toBe(true);
+      expect(utils.isIpEqual('::ffff:c000:0001', '192.0.0.1')).toBe(true);
     });
 
-    it('should return false', () => {
-      assert.isFalse(utils.isIpEqual('192.0.0.1', '192.0.0.2'));
+    test('should return false', () => {
+      expect(utils.isIpEqual('192.0.0.1', '192.0.0.2')).toBe(false);
     });
   });
 
   describe('.createAddress()', () => {
-    it('should create ipv4 address', () => {
+    test('should create ipv4 address', () => {
       const host = '192.0.0.1';
       const port = '1';
-      assert.equal(utils.createAddress(host, port), `${host}:${port}`);
+      expect(utils.createAddress(host, port)).toEqual(`${host}:${port}`);
     });
 
-    it('should create ipv6 address', () => {
+    test('should create ipv6 address', () => {
       const host = '0000:0000:0000:0000:0000:ffff:c000:0001';
       const port = '1';
-      assert.equal(utils.createAddress(host, port), `[${host}]:${port}`);
+      expect(utils.createAddress(host, port)).toEqual(`[${host}]:${port}`);
     });
   });
 
   describe('.isValidDomain()', () => {
-    it('should return true', () => {
-      assert.isTrue(utils.isValidDomain('localhost'));
-      assert.isTrue(utils.isValidDomain('example.com'));
-      assert.isTrue(utils.isValidDomain('sub.example.com'));
-      assert.isTrue(utils.isValidDomain('sub.sub.example.com'));     
+    test('should return true', () => {
+      expect(utils.isValidDomain('localhost')).toBe(true);
+      expect(utils.isValidDomain('example.com')).toBe(true);
+      expect(utils.isValidDomain('sub.example.com')).toBe(true);
+      expect(utils.isValidDomain('sub.sub.example.com')).toBe(true);     
     });
 
-    it('should return false', () => {
-      assert.isFalse(utils.isValidDomain(1));
-      assert.isFalse(utils.isValidDomain());
-      assert.isFalse(utils.isValidDomain(null));
-      assert.isFalse(utils.isValidDomain({}));
-      assert.isFalse(utils.isValidDomain([]));
-      assert.isFalse(utils.isValidDomain('192.0.0.1'));
-      assert.isFalse(utils.isValidDomain('0000:0000:0000:0000:0000:ffff:c000:0001'));
-      assert.isFalse(utils.isValidDomain('[0000:0000:0000:0000:0000:ffff:c000:0001]'));
+    test('should return false', () => {
+      expect(utils.isValidDomain(1)).toBe(false);
+      expect(utils.isValidDomain()).toBe(false);
+      expect(utils.isValidDomain(null)).toBe(false);
+      expect(utils.isValidDomain({})).toBe(false);
+      expect(utils.isValidDomain([])).toBe(false);
+      expect(utils.isValidDomain('192.0.0.1')).toBe(false);
+      expect(utils.isValidDomain('0000:0000:0000:0000:0000:ffff:c000:0001')).toBe(false);
+      expect(utils.isValidDomain('[0000:0000:0000:0000:0000:ffff:c000:0001]')).toBe(false);
     });
   });
 
   describe('.isValidHostname()', () => {
-    it('should return true', () => {
-      assert.isTrue(utils.isValidHostname('localhost'));
-      assert.isTrue(utils.isValidHostname('example.com'));
-      assert.isTrue(utils.isValidHostname('sub.example.com'));
-      assert.isTrue(utils.isValidHostname('sub.sub.example.com'));
-      assert.isTrue(utils.isValidHostname('192.0.0.1'));
-      assert.isTrue(utils.isValidHostname('0000:0000:0000:0000:0000:ffff:c000:0001'));
-      assert.isTrue(utils.isValidHostname('[0000:0000:0000:0000:0000:ffff:c000:0001]'));
+    test('should return true', () => {
+      expect(utils.isValidHostname('localhost')).toBe(true);
+      expect(utils.isValidHostname('example.com')).toBe(true);
+      expect(utils.isValidHostname('sub.example.com')).toBe(true);
+      expect(utils.isValidHostname('sub.sub.example.com')).toBe(true);
+      expect(utils.isValidHostname('192.0.0.1')).toBe(true);
+      expect(utils.isValidHostname('0000:0000:0000:0000:0000:ffff:c000:0001')).toBe(true);
+      expect(utils.isValidHostname('[0000:0000:0000:0000:0000:ffff:c000:0001]')).toBe(true);
     });
 
-    it('should return false', () => {
-      assert.isFalse(utils.isValidHostname(1));
-      assert.isFalse(utils.isValidHostname());
-      assert.isFalse(utils.isValidHostname(null));
-      assert.isFalse(utils.isValidHostname({}));
-      assert.isFalse(utils.isValidHostname([]));
+    test('should return false', () => {
+      expect(utils.isValidHostname(1)).toBe(false);
+      expect(utils.isValidHostname()).toBe(false);
+      expect(utils.isValidHostname(null)).toBe(false);
+      expect(utils.isValidHostname({})).toBe(false);
+      expect(utils.isValidHostname([])).toBe(false);
     });
   });
 
   describe('.splitAddress()', () => {
-    it('should split ipv4', () => {
+    test('should split ipv4', () => {
       const host = '192.0.0.1';
-      const port = '1';
+      const port = 1;
       const res = utils.splitAddress(utils.createAddress(host, port));
-      assert.equal(res[0], host);
-      assert.equal(res[1], port);
+      expect(res[0]).toEqual(host);
+      expect(res[1]).toEqual(port);
     });
 
-    it('should split ipv6', () => {
+    test('should split ipv6', () => {
       const host = '0000:0000:0000:0000:0000:ffff:c000:0001';
-      const port = '1';
+      const port = 1;
       const res = utils.splitAddress(utils.createAddress(host, port));
-      assert.equal(res[0], host);
-      assert.equal(res[1], port);
+      expect(res[0]).toEqual(host);
+      expect(res[1]).toEqual(port);
     });
   });
 
@@ -715,57 +715,57 @@ describe('utils', () => {
     let data;
     let result;
 
-    before(() => data = ['1', '2']);
+    beforeAll(() => data = ['1', '2']);
 
-    it('should return a string', () => {
+    test('should return a string', () => {
       result = utils.createDataHash(data);
-      assert.isString(result);
+      expect(typeof result).toBe('string');
     });
 
-    it('should return the same string', () => {
-      assert.equal(result, utils.createDataHash(data));
+    test('should return the same string', () => {
+      expect(result).toEqual(utils.createDataHash(data));
     });
 
-    it('should return the another string', () => {
-      assert.notDeepPropertyVal(result, utils.createDataHash(['3']));
+    test('should return the another string', () => {
+      expect(result).not.toHaveProperty(utils.createDataHash(['3']));
     });
   });
 
   describe('.getClosestPeriodTime()', () => {
-    it('should return the right time for 5 minutes', () => {
+    test('should return the right time for 5 minutes', () => {
       const date = utils.getClosestPeriodTime(new Date('2011-10-10T14:48:00').getTime(), 1000 * 60 * 5);
-      assert.equal(date, new Date('2011-10-10T14:45:00').getTime());
+      expect(date).toEqual(new Date('2011-10-10T14:45:00').getTime());
     });
 
-    it('should return the right time for an hour', () => {
+    test('should return the right time for an hour', () => {
       const date = utils.getClosestPeriodTime(new Date('2011-10-10T14:48:00').getTime(), 1000 * 60 * 60);
-      assert.equal(date, new Date('2011-10-10T14:00:00').getTime());
+      expect(date).toEqual(new Date('2011-10-10T14:00:00').getTime());
     });
   });
 
   describe('.isHexColor()', () => {
-    it('should return false', () => {
-      assert.isFalse(utils.isHexColor(1, 'check a number'));
-      assert.isFalse(utils.isHexColor({}, 'check an object'));
-      assert.isFalse(utils.isHexColor('#000', 'check a bad color'));
-      assert.isFalse(utils.isHexColor('#000TT1', 'check a wrong color'));
+    test('should return false', () => {
+      expect(utils.isHexColor(1, 'check a number')).toBe(false);
+      expect(utils.isHexColor({}, 'check an object')).toBe(false);
+      expect(utils.isHexColor('#000', 'check a bad color')).toBe(false);
+      expect(utils.isHexColor('#000TT1', 'check a wrong color')).toBe(false);
     });
 
-    it('should return true', () => {
-      assert.isTrue(utils.isHexColor('#FFFFDD'));
+    test('should return true', () => {
+      expect(utils.isHexColor('#FFFFDD')).toBe(true);
     });
   });
 
   describe('.getRandomHexColor()', () => {
-    it('should return a random color', () => {
+    test('should return a random color', () => {
       const color = utils.getRandomHexColor();
-      assert.isTrue(utils.isHexColor(color));
+      expect(utils.isHexColor(color)).toBe(true);
     });
   });
 
   describe('.invertHexColor()', () => {
-    it('should invert the color', () => {
-      assert.equal(utils.invertHexColor('#ffffdd'), '#000022');
+    test('should invert the color', () => {
+      expect(utils.invertHexColor('#ffffdd')).toEqual('#000022');
     });
   });
 
@@ -773,32 +773,32 @@ describe('utils', () => {
     let queue;
     let folderPath;
 
-    before(() => {
+    beforeAll(() => {
       folderPath = path.join(tools.tmpPath, 'queue');
     });
     
-    it('should create an instance', () => {
+    test('should create an instance', () => {
       queue = new utils.FilesQueue(folderPath, { limit: 3, ext: 'db' });
-      assert.equal(queue.folderPath, folderPath);
+      expect(queue.folderPath).toEqual(folderPath);
     });
 
-    it('should initialize it', async () => {
+    test('should initialize it', async () => {
       await queue.init();
-      assert.isTrue(await fse.pathExists(folderPath))
+      expect(await fse.pathExists(folderPath)).toBe(true)
     });
 
-    it('should normalize the queue', async () => {
+    test('should normalize the queue', async () => {
       for(let i = queue.options.limit; i >= 0; i--) {
         await fse.ensureFile(path.join(folderPath, queue.createName(i + 1)));
       }
 
       await queue.normalize();
-      assert.lengthOf(queue.files, queue.options.limit, 'check the size');
+      expect(queue.files.length).toBe(queue.options.limit);
       let index = 0;
       
       for(let i = 0; i < queue.files.length; i++) {
         const file = queue.files[i];
-        assert.isOk(file.index > index, 'check the info');        
+        expect(file.index > index).toBeTruthy();        
         index = file.index;
       }
     });

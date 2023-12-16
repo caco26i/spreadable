@@ -1,36 +1,44 @@
-const assert = require('chai').assert;
-const Database = require('../../src/db/transports/database')();
+import { beforeAll, expect, test, describe } from "bun:test";
+
+import DatabaseFactory from '../../src/db/transports/database';
+const Database = DatabaseFactory();
 
 describe('Database', () => {
+  let testContext;
+
+  beforeAll(() => {
+    testContext = {};
+  });
+
   let db;
-  
-  describe('instance creation', function () {
-    it('should create an instance', function () {
-      assert.doesNotThrow(() => db = new Database());
-      db.node = this.node;
+
+  describe('instance creation', () => {
+    test('should create an instance', () => {
+      expect(() => db = new Database()).not.toThrow();
+      db.node = testContext.node;
     });
   });
 
-  describe('.init()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.init()', () => { 
+    test('should not throw an exception', async () => {
       await db.init();
     });  
   });
 
-  describe('.deinit()', function () { 
-    it('should not throw an exception', async function () {
+  describe('.deinit()', () => { 
+    test('should not throw an exception', async () => {
       await db.deinit();
     });
-  }); 
+  });
 
   describe('reinitialization', () => {
-    it('should not throw an exception', async function () {
+    test('should not throw an exception', async () => {
       await db.init();
     });
   });
-  
-  describe('.destroy()', function () { 
-    it('should not throw an exception', async function () {
+
+  describe('.destroy()', () => { 
+    test('should not throw an exception', async () => {
       await db.destroy();
     });
   });
